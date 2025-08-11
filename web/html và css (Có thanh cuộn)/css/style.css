@@ -4,7 +4,7 @@
 
 :root {
     --numcol: 5;
-    --minw: calc(960px / var(--numcol))
+    --minw: calc(960px / var(--numcol));
 }
 
 body {
@@ -54,7 +54,7 @@ body {
 
 /* Cột đầu */
 .left-panel {
-    width: 180px;
+    width: 15vw;
     display: flex;
     flex-direction: column;
     gap: 10px;
@@ -68,6 +68,15 @@ body {
     border-radius: 20px;
     padding: 5px 10px;
     word-wrap: break-word;
+}
+
+/*Điền kí tự*/
+.label{
+    display: flex;  
+    font-size: 18px;
+    font-weight: bold;
+    justify-content: center;
+    gap: 5px; /* khoảng cách giữa label và input */
 }
 
 .frame-options {
@@ -96,8 +105,7 @@ body {
 .middle-panel {
     width: 70vw;
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(var(--minw), 1fr));
-      /* minmax(120px, 1fr) => mỗi box tối thiểu 120px, tối đa tự giãn */
+    grid-template-columns: repeat(auto-fit, minmax(var(--minw), 1fr));
     gap: 10px;
     padding: 10px;   
     height: calc(100vh);
@@ -109,12 +117,12 @@ body {
     background-color: #333;
     border: 2px solid white;
     border-radius: 10px;
-    height: calc(var(--minw) * 9 / 16)
+    height: calc(var(--minw) * 9 / 16);
 }
 
 /* Cột cuối*/
 .right-panel {
-    width: 200px;
+    width: 15vw;
     display: flex;
     flex-direction: column;
     height: 100vh;
