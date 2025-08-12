@@ -1,0 +1,125 @@
+* {
+    box-sizing: border-box;
+}
+
+:root {
+    --numcol: 4
+}
+
+.top-setting {grid-area: h;}
+.left-panel {grid-area: l;}
+.middle-panel {grid-area: m;}
+.right-panel {grid-area: r;}
+
+body {
+    background-color: #A9A9A9;
+    font-family: Arial, sans-serif;
+    color: #F5F5F5;
+    height: 98vh;
+    display: grid;
+    grid-template-columns: 15% 70% 15%;
+    grid-template-rows: 5% 95%;
+    grid-template-areas: 
+        "h h h"
+        "l m r";
+    overflow-y: auto;
+}
+
+.top-panel {
+    border: 2px solid white;
+    border-radius: 20px;
+    width: 99vw;
+}
+
+.left-panel {
+    border: 2px solid white;
+    border-radius: 20px;
+    padding: 10px;
+    
+    .search-area {
+        padding: 10px;
+        .search-box {
+            border: 2px solid white;
+            border-radius: 20px;
+            padding: 10px;
+            word-wrap: break-word;
+        }
+        .param-enter{
+            font-size: 18px;
+            font-weight: bold;
+        }
+    }
+
+    .filter-options {
+        padding: 10px;
+        border: 2px solid white;
+        border-radius: 20px;
+        display: flex;
+        flex-direction: column;
+        .title {
+            text-align: center;
+            font-size: 1.2em;
+        }
+        label {
+            padding: 0.5rem;
+            input {
+                transform: scale(2);
+            }
+        }
+        .option-name {font-size: 1.2em;}
+    }
+}
+
+.middle-panel {
+    border: 2px solid white;
+    border-radius: 20px;
+    padding: 10px;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(calc(905px / var(--numcol)), 1fr));
+    overflow-x: hidden;
+    overflow-y: auto;
+
+    .box {
+        background-color: #333;
+        border: 2px solid white;
+        border-radius: 10px;
+        aspect-ratio: 16 / 9;
+    }
+}
+
+/* Cột cuối*/
+.right-panel {
+    border: 2px solid white;
+    border-radius: 20px;
+    padding: 10px;
+
+    .title {
+        font-size: 2em;
+        text-align: center;
+    }
+
+    .image-display {
+        display: grid;
+        height: 600px;
+        grid-template-columns: 1fr;
+        overflow-x: hidden;
+        overflow-y: auto;
+
+        .box {
+            background-color: #333;
+            border: 2px solid white;
+            border-radius: 10px;
+            aspect-ratio: 16 / 9;
+        }
+    }
+
+    .submit-button {
+        width: 200px;
+        font-size: 2em;
+        border-radius: 20px;
+        border: none;
+        position: absolute;
+        bottom: 1rem;
+        padding: 1rem;
+    }
+}
