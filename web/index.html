@@ -3,13 +3,26 @@
     <head>
         <meta charset="UTF-8">
         <title>AIC-25</title>
-        <link rel="stylesheet" href="/web/html và css (Có thanh cuộn)/css/style.css">
+        <link rel="stylesheet" href="css/style.css">
     </head>
 
     <body>
         <div class="top-panel">
             <div class="left-buttons">
-                <div class="setting"> ⚙ Color </div>
+                <div class="setting" id="btn-open" style="cursor: pointer;"> ⚙ Color </div>
+            </div>
+        </div>
+        <div id="modal-container">
+            <div class="modal" id="modal-demo">
+                <div class="modal-header">
+                    <h3>Background Colors</h3>
+                    <button id="btn-close"><i class="fa-solid fa-xmark"></i></button>
+                </div>
+                <div class="modal-body">
+                    <label>Background Color</label>
+            	        <span><input type="text" id="mau"></span>
+                        <span><input type="submit" id="sub_btn" value="Save"></span>
+                </div>
             </div>
         </div>
 
@@ -94,5 +107,7 @@
             </section>
             <button class='submit-button'>SUBMIT</button>
         </div>
+
+        <script type="text/javascript" src="js/script.js"></script>
     </body>
 </html>
