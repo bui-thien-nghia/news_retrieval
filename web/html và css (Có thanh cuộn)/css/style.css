@@ -3,8 +3,7 @@
 }
 
 :root {
-    --numcol: 5;
-    --minw: calc(960px / var(--numcol));
+    --numcol: 4
 }
 
 body {
@@ -105,10 +104,8 @@ body {
 .middle-panel {
     width: 70vw;
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(var(--minw), 1fr));
-    gap: 10px;
-    padding: 10px;   
-    height: calc(100vh);
+    grid-template-columns: repeat(auto-fill, minmax(calc(980px / var(--numcol)), 1fr));
+    padding: 10px;
     overflow-y: auto;   /* cuộn dọc */
     overflow-x: hidden; /* ẩn cuộn ngang */
 }
@@ -117,7 +114,7 @@ body {
     background-color: #333;
     border: 2px solid white;
     border-radius: 10px;
-    height: calc(var(--minw) * 9 / 16);
+    aspect-ratio: 16 / 9;
 }
 
 /* Cột cuối*/
