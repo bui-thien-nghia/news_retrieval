@@ -28,17 +28,25 @@
 
         <div class="left-panel">
             <div class="search-area">
-                <div class="search-box">
-                    <span>🔍</span>
-                    <span>x</span>
-                </div>
+                <table>
+                    <tr>
+                        <td>
+                            <input type="text" id="key_query" class="search-box">
+                        </td>
+                        <td>
+                            <button type="button" class="search-box" style="cursor: pointer;" id="search_button" onClick="Searching()">🔍</button>
+                        </td>
+                    </tr>
+                </table>
+                <br>
                 <div class="param-enter">
                     <label class="label-number">Top K:</label>
-                    <input type="number" class="num-input">
+                    <input type="number" class="num-input" id="topk">
                 </div>
+                <br>
                 <div class="param-enter">
                     <label class="label-text">Collection:</label>
-                    <input type="text" class="text-input">
+                    <input type="text" class="text-input" id="collection">
                 </div>
             </div>
             <div class="filter-options">
