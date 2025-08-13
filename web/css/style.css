@@ -196,6 +196,7 @@ body {
         border-radius: 20px;
         display: flex;
         flex-direction: column;
+        margin-top: auto;
         .title {
             text-align: center;
             font-size: 1.5em;
@@ -206,8 +207,19 @@ body {
                 transform: scale(1.5);
             }
         }
-        .option-name {font-size: 1.2em;}
+        .num-input {
+            width: 50px;
+            height: 15px;
+            margin-left: 30px;
+            margin-top: 5px;
+            display: none; 
+            font-size: 12px;
+        }
+        label input[type="checkbox"]:checked ~ .num-input {
+            display: inline-block;
+        }
     }
+
 }
 
 .middle-panel {
@@ -260,5 +272,5 @@ body {
         position: absolute;
         bottom: 1rem;
         padding: 1rem;
-    }
+        
 }
