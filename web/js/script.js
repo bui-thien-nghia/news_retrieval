@@ -37,3 +37,36 @@ function Searching(){
     obj = document.getElementById("search_button");
     obj.onclick = Searching_1;
 }
+
+// Chọn kiểu tìm kiếm
+document.addEventListener('DOMContentLoaded', function() {
+        const search_mode = document.getElementById('search-mode');
+        const all_content = document.querySelectorAll('.hideable');
+
+        function hideAllContent() {
+            all_content.forEach(content => {
+                content.style.display = 'none';
+            });
+        }
+        hideAllContent();
+
+        search_mode.addEventListener('change', function() {
+            hideAllContent();
+
+            const selectedValue = this.value;
+            const targetContent = document.getElementById(selectedValue);
+
+            if (targetContent) {
+                targetContent.style.display = 'flex';
+                targetContent.style.flexDirection = 'column';
+            }
+        });
+
+        const initialSelectedValue = search_mode.value;
+        const initialTargetContent = document.getElementById(initialSelectedValue);
+        if (initialTargetContent) {
+            initialTargetContent.style.display = 'flex';
+            initialTargetContent.style.flexDirection = 'column';
+        
+        }
+    });

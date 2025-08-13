@@ -11,17 +11,17 @@
             <div class="left-buttons">
                 <div class="setting" id="btn-open" style="cursor: pointer;"> ⚙ Color </div>
             </div>
-        </div>
-        <div id="modal-container">
-            <div class="modal" id="modal-demo">
-                <div class="modal-header">
-                    <h3>Background Colors</h3>
-                    <button id="btn-close"><i class="fa-solid fa-xmark"></i></button>
-                </div>
-                <div class="modal-body">
-                    <label>Background Color</label>
-            	        <span><input type="text" id="mau"></span>
-                        <span><input type="submit" id="sub_btn" value="Save"></span>
+            <div id="modal-container">
+                <div class="modal" id="modal-demo">
+                    <div class="modal-header">
+                        <h3>Background Colors</h3>
+                        <button id="btn-close"><i class="fa-solid fa-xmark"></i></button>
+                    </div>
+                    <div class="modal-body">
+                        <label>Background Color</label>
+                            <span><input type="text" id="mau"></span>
+                            <span><input type="submit" id="sub_btn" value="Save"></span>
+                    </div>
                 </div>
             </div>
         </div>
@@ -38,19 +38,64 @@
                         </td>
                     </tr>
                 </table>
-                <br>
                 <div class="param-enter">
-                    <label class="label-number">Top K:</label>
-                    <input type="number" class="num-input" id="topk">
+                    <label class="label-number">
+                        <span>Top K</span>
+                        <input type="number" class="num-input" id="topk">
+                    </label>
                 </div>
-                <br>
                 <div class="param-enter">
-                    <label class="label-text">Collection:</label>
-                    <input type="text" class="text-input" id="collection">
+                    <label class="label-text">
+                        <span>Collection</span>
+                        <input type="text" class="text-input" id="collection">
+                    </label>
+                </div>
+                <div class="wrapper">
+                    <details name="advanced-setting">
+                        <summary>Advanced settings</summary>
+                        <div class="checkbox-grid">
+                            <div class="selection">
+                                <label for="search-mode"></label>
+                                <select name="search-mode" id="search-mode">
+                                    <option value="normal-search">Normal search</option>
+                                    <option value="range-search">Range search</option>
+                                    <option value="grouping-search">Grouping search</option>
+                                </select>                            
+                            </div>
+                            <div id="range-search" class="hideable">
+                                <label for="radius">
+                                    <span>Radius</span>
+                                    <input id="radius" type="number">
+                                </label>
+
+                                <label for="range-filter">
+                                    <span>Range filter</span>
+                                    <input id="range-filter" type="number">
+                                </label>
+                            </div>
+                            <div id="grouping-search" class="hideable">
+                                <label for="group-by-field">
+                                    <span>Group by field</span>
+                                    <input id="group-by-field" type="text">
+                                </label>
+
+                                <label for="group-size">
+                                    <span>Group size</span>
+                                    <input id="group-size" type="number">
+                                </label>
+
+                                <label for="strict-group-size">
+                                    <span>Strict group size</span>
+                                    <input id="strict-group-size" type="checkbox">
+                                </label>
+                                
+                            </div>
+                        </div>
+                    </details>
                 </div>
             </div>
             <div class="filter-options">
-                <p class="title"><strong>METADATA FILTERS</strong></p>
+                <p class="title"><strong>FILTERS</strong></p>
                 <label for="video_id">
                     <input type="checkbox" id="video_id" class="option">
                     <span class="option-name">video_id</span>
