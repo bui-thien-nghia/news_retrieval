@@ -143,7 +143,6 @@ body {
         color: black;
         
         summary {
-            font-size: 18px;
             font-weight: bold;
             cursor: pointer;
             list-style: none;
@@ -156,33 +155,33 @@ body {
             right: 0;
             top: 50%;
             transform: translateY(-50%);
-            font-size: 14px;
             transition: transform 0.3s ease;
         }
 
         .checkbox-grid {
-            margin-top: 10px;
-            display: flex;
+            padding: 5px;
+            display: block;
             flex-direction: column;
             gap: 12px;
             
-            label {
-                font-size: 1.2em;
+            select {
+                font-size: 18px;
             }
 
-            select {
-                font-size: 1.05em;
+            label {
+                padding: 5px;
+                font-size: 16px;
             }
 
             input[type="number"], input[type="text"] {
-                padding: 4px 6px;
+                padding: 4px 4px;
                 border: 1px solid #ccc;
                 border-radius: 4px;
                 width: 100px;
             }
 
             input[type="checkbox"] {
-                transform: scale(2);
+                transform: scale(1.5);
             }
         }
     }
@@ -207,16 +206,16 @@ body {
                 transform: scale(1.5);
             }
         }
-        .num-input {
-            width: 50px;
+        .text-input {
+            width: 100px;
             height: 15px;
-            margin-left: 30px;
+            margin-left: 40px;
             margin-top: 5px;
             display: none; 
-            font-size: 12px;
+            font-size: 10px;
         }
-        label input[type="checkbox"]:checked ~ .num-input {
-            display: inline-block;
+        label input[type="checkbox"]:checked ~ .text-input {
+            display: block;
         }
     }
 
@@ -272,5 +271,5 @@ body {
         position: absolute;
         bottom: 1rem;
         padding: 1rem;
-        
+    }
 }
