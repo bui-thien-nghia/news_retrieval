@@ -34,7 +34,7 @@
                             <input type="text" id="key_query" class="search-box">
                         </td>
                         <td>
-                            <button type="button" class="search-box" style="cursor: pointer;" id="search_button" onClick="Searching_1()">🔍</button>
+                            <button type="button" class="search-box" style="cursor: pointer;" id="search_button" onClick="Searching()">🔍</button>
                         </td>
                     </tr>
                 </table>
@@ -92,7 +92,17 @@
                             </div>
                         </div>
                     </details>
+                    <div class="wrapper">
+                        <details name="advanced-setting">   
+                            <summary>History search</summary>
+                        </details>
+                    </div>
                 </div>
+                <br>
+                <label for="language" style="font-weight:bold;">Language</label>                <select id="language" name="language">
+                    <option value="en"> EN </option>
+                    <option value="vn"> VN </option>
+                </select>   
             </div>
             <div class="filter-options">
                 <p class="title"><strong>FILTERS</strong></p>
