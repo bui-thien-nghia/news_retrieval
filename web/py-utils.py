@@ -190,3 +190,5 @@ def get_metadata_list_dict(search_result: list[dict]):
         for field in list[metadata_list_dict.keys()]:
             if entity[field] not in metadata_list_dict[field]:
                 metadata_list_dict[field].append(entity[field])
+
+    return metadata_dict_list
