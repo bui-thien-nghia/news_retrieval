@@ -19,7 +19,7 @@ body {
     color: #F5F5F5;
     height: 100vh;
     display: grid;
-    grid-template-columns: 15% 70% 15%;
+    grid-template-columns: 20% 65% 15%;
     grid-template-rows: 5% 95%;
     grid-template-areas: 
         "h h h"
@@ -123,71 +123,67 @@ body {
     .search-area {
         padding: 5px;
         font-size: 1.2em;
-        .search-box {
+
+        .search-input, .search-button {
             border: 2px solid #ccc;
             border-radius: 20px;
-            padding: 10px;
-            word-wrap: break-word;
+            padding: 5px;
+            cursor: pointer;
         }
         .param-enter{
             padding: 5px;
             font-weight: bold;
         }
-    }
 
-    details {
-        border: 1px solid #ccc;
-        border-radius: 8px;
-        padding: 8px 12px;
-        background: #fafafa;
-        color: black;
-        margin-top: 10px;
-        
-        summary {
-            font-weight: bold;
-            cursor: pointer;
-            list-style: none;
-            position: relative;
-            padding-right: 24px;
-        }
-        summary::after {
-            content: "▼";
-            position: absolute;
-            right: 0;
-            top: 50%;
-            transform: translateY(-50%);
-            transition: transform 0.3s ease;
-        }
-
-        .checkbox-grid {
-            padding: 5px;
-            display: block;
-            flex-direction: column;
-            gap: 12px;
+        details {
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            padding: 8px 12px;
+            background: #fafafa;
+            color: black;
+            margin-top: 10px;
             
-            select {
-                font-size: 18px;
+            summary {
+                font-weight: bold;
+                cursor: pointer;
+                list-style: none;
+                position: relative;
+                padding-right: 24px;
             }
-
-            label {
-                padding: 5px;
-                font-size: 16px;
+            summary::after {
+                content: "▼";
+                position: absolute;
+                right: 0;
+                top: 50%;
+                transform: translateY(-50%);
+                transition: transform 0.3s ease;
             }
-
-            input[type="number"], input[type="text"] {
-                padding: 4px 4px;
-                border: 1px solid #ccc;
-                border-radius: 4px;
-                width: 100px;
-            }
-
-            input[type="checkbox"] {
-                transform: scale(1.5);
+    
+            .advanced-settings {
+                select {
+                    font-size: 18px;
+                }
+    
+                label {
+                    padding-top: 2px;
+                    font-size: 16px;
+                }
+    
+                input[type="number"], input[type="text"] {
+                    padding: 4px 4px;
+                    border: 1px solid #ccc;
+                    border-radius: 4px;
+                    width: 100px;
+                }
+    
+                input[type="checkbox"] {
+                    transform: scale(1.5);
+                }
             }
         }
-    }
-    details[open] summary::after {
-        transform: translateY(-50%) rotate(180deg);
+        details[open] summary::after {
+            transform: translateY(-50%) rotate(180deg);
+        }
     }
 
     .filter-options {
@@ -243,6 +239,9 @@ body {
     border: 2px solid white;
     border-radius: 20px;
     padding: 10px;
+    display: grid;
+    grid-template-rows: 1fr 18fr 1fr;
+    row-gap: 10px;
 
     .title {
         font-size: 2em;
@@ -251,7 +250,6 @@ body {
 
     .image-display {
         display: grid;
-        height: 600px;
         grid-template-columns: 1fr;
         overflow-x: hidden;
         overflow-y: auto;
@@ -269,8 +267,6 @@ body {
         font-size: 2em;
         border-radius: 20px;
         border: none;
-        position: absolute;
-        bottom: 1rem;
         padding: 1rem;
     }
 }

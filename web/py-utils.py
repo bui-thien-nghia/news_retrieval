@@ -78,7 +78,7 @@ def prepare_query(query: str, lang: str):
         output = translate_model.generate(translate_tokenizer(query, return_tensors='pt', padding=True).input_ids.to(device), max_length=1024)
         translated_query = translate_tokenizer.batch_decode(output, skip_special_tokens=True)
         used_query = translated_query[0][3:]
-    elif lang == 'en':
+    elif lang == 'eng':
         used_query = query
     else:
         raise ValueError(f'{lang} is not supported. Supported language are: \'en\' and \'vie\'')
