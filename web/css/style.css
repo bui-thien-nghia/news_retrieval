@@ -120,6 +120,11 @@ body {
     display: flex;
     flex-direction: column;
 
+    select {
+        border: 2px solid #ccc;
+        border-radius: 10px;
+    }
+
     .search-area {
         padding: 5px;
         font-size: 1.2em;
