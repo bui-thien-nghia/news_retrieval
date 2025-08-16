@@ -1,7 +1,7 @@
 // Setting color
 const open = document.getElementById('btn-open');
 const close = document.getElementById('btn-close');
- 
+
 const modal_container = document.getElementById('modal-container');
 const modal_demo = document.getElementById('modal-demo');
         
@@ -70,3 +70,33 @@ document.addEventListener('DOMContentLoaded', function() {
         
         }
     });
+
+// Core search functionality
+const { spawn } = require('child_process');
+
+function getFunction(f_name, args) {
+    return new Promise((resolve, reject) => {
+        const funcProcess = spawn('python3', [
+            'py-utils.py',
+            f_name,
+            JSON.stringify(args)
+        ]);
+
+        let output = '';
+        funcProcess.stdout.on('data', (data) => {
+            output += data.toString();
+        });
+
+        funcProcess.stderr.on('data', (data) => {
+            console.error(`stderr: ${data}`);
+        });
+
+        funcProcess.on('close', (code) => {
+            if (code === 0) {
+                resolve(output.trim());
+            } else {
+                reject(`Exited with code ${code}`)
+            }
+        });
+    });
+}

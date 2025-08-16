@@ -1,4 +1,6 @@
 # Module setup
+import sys
+import json
 import torch
 import torch.nn.functional as F
 from open_clip import create_model_from_pretrained, get_tokenizer
@@ -119,46 +121,40 @@ def search(query: str, lang: str, collection_name: str, top_k: int, **options):
     ----
     :search_result (list[dict]): Danh sách kết quả truy vấn
     '''
-    # Prepare search parameters
-    search_params = {
-        'metric_type': 'COSINE',
-        'params': {
-            'ef': options['ef'] if 'ef' in options else 200
+    # Prepare search arguments
+    args = {
+        'collection_name': collection_name,
+        'data': [prepare_query(query, lang)],
+        'limit': top_k,
+        'output_fields': ['*'],
+        'search_params': {
+            'metric_type': 'COSINE',
+            'params': {
+                'ef': options['ef'] if 'ef' in options else 200
+            }
         }
     }
+    if 'group_by_field' in options and options['group_by_field'] is not None:
+        args['group_by_field'] = options['group_by_field']
+    if 'group_size' in options and options['group_size'] is not None:
+        args['group_size'] = options['group_size']
+    if 'strict_group_size' in options and options['strict_group_size'] is not None:
+        args['strict_group_size'] = options['strict_group_size']
     if 'radius' in options and options['radius'] is not None:
-        search_params['params']['radius'] = options['radius']
+        args['search_params']['params']['radius'] = options['radius']
     if 'range_filter' in options and options['range_filter'] is not None:
-        search_params['params']['range_filter'] = options['range_filter']
+        args['search_params']['params']['range_filter'] = options['range_filter']
 
-    # Initiate search
-    if 'group_by_field' in options and options['radius_filter'] is not None:
-        search_result = client.search(
-            collection_name,
-            data=[prepare_query(query, lang)],
-            limit=top_k,
-            group_by_field=options['group_by_field'],
-            group_size=options['group_size'] if 'group_size' in options else 1,
-            strict_group_size=options['strict_group_size'] if 'strict_group_size' in options else False,
-            output_fields=['*'],
-            search_params=search_params
-        )
-    else:
-        search_result = client.search(
-            collection_name,
-            data=[prepare_query(query, lang)],
-            limit=top_k,
-            output_fields=['*'],
-            search_params=search_params
-        )
+    # Invoke search
+    search_result = client.search(**args)
     
     # Group results into one list
-    result_dicts = []
+    result_dict_list = []
     for res in search_result:
         for hit in res:
-            result_dicts.append(hit['entity'])
+            result_dict_list.append(hit['entity'])
     
-    return result_dicts
+    return result_dict_list
 
 
 def get_keys(search_result: list[dict]):
@@ -192,3 +188,22 @@ def get_metadata_list_dict(search_result: list[dict]):
                 metadata_list_dict[field].append(entity[field])
 
     return metadata_list_dict
+
+
+# .js call receiver
+if __name__ == '__main__':
+    f_name = sys.argv[1]
+    args = json.loads(sys.argv[2])
+
+    if f_name == 'get_all_entities':
+        get_all_entities(**args)
+    elif f_name == 'prepare_query':
+        prepare_query(**args)
+    elif f_name == 'search':
+        search(**args)
+    elif f_name == 'get_keys':
+        get_keys(**args)
+    elif f_name == 'get_metadata_list_dict':
+        get_metadata_list_dict(**args)
+    else:
+        raise ValueError(f'Function {f_name} is not defined in this module.')
