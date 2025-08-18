@@ -5,7 +5,7 @@
 }
 
 :root {
-    --numcol: 4
+    --numcol: 3
 }
 
 .top-setting {grid-area: h;}
@@ -20,7 +20,7 @@ body {
     height: 100vh;
     display: grid;
     grid-template-columns: 20% 65% 15%;
-    grid-template-rows: 5% 95%;
+    grid-template-rows: 10% 90%;
     grid-template-areas: 
         "h h h"
         "l m r";
@@ -30,12 +30,21 @@ body {
 .top-panel {
     border: 2px solid white;
     border-radius: 20px;
+    padding: 5px;
     width: 100vw;
+    display: flex;
+    justify-content: space-between;
+    font-size: 25px;
+    font-weight: bold;
 
-    .setting{
+    .setting, .slider{
+        width: 50%;
+        border: 1px solid white;
+        border-radius: 15px;
+        padding: 3px;
         display: flex;
         justify-content: center;
-        font-size: 25px;
+        align-items: center;
     }
 
     button #btn-open {
@@ -228,6 +237,7 @@ body {
     border-radius: 20px;
     padding: 10px;
     display: grid;
+    align-content: start;
     grid-template-columns: repeat(auto-fill, minmax(calc(905px / var(--numcol)), 1fr));
     overflow-x: hidden;
     overflow-y: auto;
@@ -240,77 +250,29 @@ body {
         border: 2px solid white;
         border-radius: 10px;
         aspect-ratio: 16 / 9;
+        padding: 3px;
+        display: flex;
+        flex-wrap: wrap;
+        align-content: flex-end;
+        row-gap: 3px;
     }
 
-        .tag-video_id {
-            width: 22.5%;
-            height: 12%;
-            background: red;
-            border-radius: 6px;
-            position: absolute;
-            bottom: 2%;
-            right: 2%;  
-        }
-
-        .tag-frame_id {
-            width: 22.5%;
-            height: 12%;
-            background:orange;
-            border-radius: 6px;
-            position: absolute;
-            bottom: 2%;
-            right: 26.5%;  
-        }
-    
-        .tag-time_order{
-            width: 22.5%;
-            height: 12%;
-            background: yellow;
-            border-radius: 6px;
-            position: absolute;
-            bottom: 2%;
-            right: 51%;  
-        }
-    
-        .tag-frame_order {
-            width: 22.5%;
-            height: 12%;
-            background:green;
-            border-radius: 6px;
-            position: absolute;
-            bottom: 2%;
-            right: 75.5%;  
-        }
-    
-        .tag-answer_key {
-            width: 22.5%;
-            height: 12%;
-            background:blue;
-            border-radius: 6px;
-            position: absolute;
-            bottom: 16%;
-            right: 2%;
-        }
-    
-        .tag-youtube_link {
-            width: 22.5%;
-            height: 12%;
-            background:indigo;
-            border-radius: 6px;
-            position: absolute;
-            bottom: 16%;
-            right: 26.5%;  
-        }
-    
-        .tag-publish_date {
-            width: 22.5%;
-            height: 12%;
-            background: violet;
-            border-radius: 6px;
-            position: absolute;
-            bottom: 16%;
-            right: 51%;  
-        }
+    .tag {
+        padding: 4px 1px;
+        border-radius: 6px;
+        font-size: 0.8rem;
+        font-weight: bold;
+    }
+    .tag-video_id {background: rgba(255, 0, 0, 0.5);}
+    .tag-frame_id {background:rgba(255, 166, 0, 0.5);}
+    .tag-time_order{background: rgba(255, 255, 0, 0.5);}
+    .tag-frame_order {background:rgba(0, 128, 0, 0.5);}
+    .tag-answer_key {background:rgba(0, 0, 255, 0.5);}
+    .tag-youtube_link {
+        background:rgba(76, 0, 130, 0.5);
+        a {color: white;}
+    }
+    .tag-publish_date {background: rgba(238, 130, 238, 0.5);}
 }
 
 .right-panel {

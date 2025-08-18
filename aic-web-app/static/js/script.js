@@ -22,6 +22,20 @@ async function callPythonFunction(f_name, args) {
     return data;
 }
 
+// Metadata tag switch
+function addTagSwitchEventListener() {
+    const tags = document.querySelectorAll('.tag');
+    tags.forEach(tag => {
+        var tagSwitchId = tag.id;
+        tagSwitchId = tagSwitchId.replace('tag_', '');
+        var tagSwitch = document.getElementById(tagSwitchId);
+        tag.style.display = tagSwitch.checked ? 'block' : 'none';
+        tagSwitch.addEventListener('change', function() {
+            tag.style.display = tagSwitch.checked ? 'block' : 'none';
+        });
+    });
+}
+
 function loadImageFromS3(container, entities, bucket, region) {
     container.innerHTML = ''; // Clear previous content
     entities.forEach(entity => {
@@ -29,8 +43,18 @@ function loadImageFromS3(container, entities, bucket, region) {
             const resultItem = document.createElement('div');
             resultItem.className = 'box';
             resultItem.style.backgroundImage = `url(\'https://${bucket}.s3.${region}.amazonaws.com/${entity.img_key}\')`;
-            resultItem.innerHTML = `` // Change metadata tags later;
+            resultItem.innerHTML = `
+                <div class="tag tag-video_id" id="tag_video_id">${entity.video_id}</div>
+                <div class="tag tag-frame_id" id="tag_frame_id">${entity.frame_id}</div>
+                <div class="tag tag-time_order" id="tag_time_order">${entity.time_order}</div>
+                <div class="tag tag-frame_order" id="tag_frame_order">${entity.frame_order}</div>
+                <div class="tag tag-answer_key" id="tag_answer_key">${entity.answer_key}</div>
+                <div class="tag tag-youtube_link" id="tag_youtube_link"><a target="_blank" href=${entity.youtube_link}>Click here</a></div>
+                <div class="tag tag-publish_date" id="tag_publish_date">${entity.publish_date}</div>
+            `
             container.appendChild(resultItem);
+
+            addTagSwitchEventListener();
         } catch (error) {
             console.error('Error loading image:', error);
             return; // Skip this entity if there's an error
@@ -55,7 +79,7 @@ saving.addEventListener('click', ()=>{
     document.body.style.backgroundColor = color_val;
 });
 
-// Thanh tìm kiếm
+// Search bar
 document.getElementById("search_button").addEventListener("click", async () => {
     const args = {
         query: document.getElementById("key_query").value,
@@ -84,7 +108,7 @@ document.getElementById("search_button").addEventListener("click", async () => {
     loadImageFromS3(resultContainer, allEntities, 'aic24', 'ap-southeast-2');
 });
 
-// Chọn kiểu tìm kiếm
+// Search mode change handler
 document.addEventListener('DOMContentLoaded', function() {
     const search_mode = document.getElementById('search_mode');
     const all_content = document.querySelectorAll('.hideable');
@@ -117,12 +141,27 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 
-//Pre-load images (currently pre-load last year's dataset)
-document.addEventListener('DOMContentLoaded', async () => {
-    args = {collection_name: 'aictestbatch'}
-    const resultContainer = document.getElementsByClassName("middle-panel")[0];
-    resultContainer.innerHTML = '<span>Loading dataset...</span>';
-    const result = await callPythonFunction('get_all_entities', args)
-    const allEntities = Object.values(result);
-    loadImageFromS3(resultContainer, allEntities, 'aic24', 'ap-southeast-2');
+//Adjust column number
+document.getElementById('num_columns').addEventListener('input', function() {
+    document.documentElement.style.setProperty('--numcol', this.value);
 });
+
+// Pre-load images (currently pre-load last year's dataset)
+// document.addEventListener('DOMContentLoaded', async () => {
+//     args = {collection_name: 'aictestbatch'}
+//     const resultContainer = document.getElementsByClassName("middle-panel")[0];
+//     resultContainer.innerHTML = '<span>Loading dataset...</span>';
+//     const result = await callPythonFunction('get_all_entities', args)
+//     const allEntities = Object.values(result);
+//     loadImageFromS3(resultContainer, allEntities, 'aic24', 'ap-southeast-2');
+// });
+addTagSwitchEventListener();
+
+// document.addEventListener('DOMContentLoaded', function() {
+//     const tick = document....getElementbyId("");
+//     var result = search("isidufh9sfuvhrwgf");
+//     tick.addEventListener('change', function() {
+//      recheckDisplay = document.getElementById("recheck");
+//      loadImageFromS3(recheckDisplay, [result], 'aic24', 'ap-southeast-2');
+//     })
+// });
