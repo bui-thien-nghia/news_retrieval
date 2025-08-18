@@ -234,6 +234,9 @@ body {
 
     .box {
         background-color: #333;
+        background-size: contain;
+        background-repeat: no-repeat;
+        background-position: center;
         border: 2px solid white;
         border-radius: 10px;
         aspect-ratio: 16 / 9;

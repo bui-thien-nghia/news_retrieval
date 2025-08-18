@@ -130,19 +130,19 @@ def search(query: str, lang: str, collection_name: str, top_k: int, **options):
         'search_params': {
             'metric_type': 'COSINE',
             'params': {
-                'ef': options['ef'] if 'ef' in options else 200
+                'ef': options['ef'] if 'ef' in options and options['ef'] > 0 else 200
             }
         }
     }
-    if 'group_by_field' in options and options['group_by_field'] is not None:
+    if 'group_by_field' in options and options['group_by_field'] != '':
         args['group_by_field'] = options['group_by_field']
-    if 'group_size' in options and options['group_size'] is not None:
+    if 'group_size' in options and options['group_size'] != '':
         args['group_size'] = options['group_size']
-    if 'strict_group_size' in options and options['strict_group_size'] is not None:
+    if 'strict_group_size' in options and options['strict_group_size'] != '':
         args['strict_group_size'] = options['strict_group_size']
-    if 'radius' in options and options['radius'] is not None:
+    if 'radius' in options and options['radius'] != '':
         args['search_params']['params']['radius'] = options['radius']
-    if 'range_filter' in options and options['range_filter'] is not None:
+    if 'range_filter' in options and options['range_filter'] != '':
         args['search_params']['params']['range_filter'] = options['range_filter']
 
     # Invoke search
@@ -188,22 +188,3 @@ def get_metadata_list_dict(search_result: list[dict]):
                 metadata_list_dict[field].append(entity[field])
 
     return metadata_list_dict
-
-
-# .js call receiver
-if __name__ == '__main__':
-    f_name = sys.argv[1]
-    args = json.loads(sys.argv[2])
-
-    if f_name == 'get_all_entities':
-        get_all_entities(**args)
-    elif f_name == 'prepare_query':
-        prepare_query(**args)
-    elif f_name == 'search':
-        search(**args)
-    elif f_name == 'get_keys':
-        get_keys(**args)
-    elif f_name == 'get_metadata_list_dict':
-        get_metadata_list_dict(**args)
-    else:
-        raise ValueError(f'Function {f_name} is not defined in this module.')

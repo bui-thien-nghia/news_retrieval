@@ -6,10 +6,11 @@
         <meta name="description" content="A web for image search and display at ease">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>Team TH3N's image search web</title>
-        <link rel="stylesheet" href="css/style.css" type="text/css">
+        <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}" type="text/css">
     </head>
 
     <body>
+        <script scr="{{ url_for('static', filename='js/init.js') }}"></script>
         <div class="top-panel">
             <div class="left-buttons">
                 <div class="setting" id="btn-open" style="cursor: pointer;"> ⚙ Color </div>
@@ -37,29 +38,29 @@
                             <textarea name="key_query" id="key_query" class="search-input" rows="4" cols="30"></textarea>
                         </td>
                         <td>
-                            <button type="button" class="search-button" id="search_button" onClick="Searching()">🔍</button>
+                            <button type="button" class="search-button" id="search_button">🔍</button>
                         </td>
                     </tr>
                 </table>
 
                 <div class="param-enter">
-                    <label for="topk">
+                    <label for="top_k">
                         <span>Top K</span>
-                        <input type="number"id="topk">
+                        <input type="number" id="top_k" value=100>
                     </label>
                 </div>
 
                 <div class="param-enter">
                     <label for="collection">
                         <span>Collection</span>
-                        <input type="text" id="collection">
+                        <input type="text" id="collection_name" value="aictestbatch">
                     </label>
                 </div>
 
                 <div class="param-enter">
                     <label for="language">
                         <span>Language</span>
-                        <select id="language" name="language">
+                        <select id="lang" name="language">
                             <option value="eng"> EN </option>
                             <option value="vie"> VN </option>
                         </select>   
@@ -78,14 +79,14 @@
                             </div>
 
                             <div class="param-enter">
-                                <label for="search-mode"></label>
-                                <select name="search-mode" id="search-mode">
-                                    <option value="normal-search">Normal search</option>
-                                    <option value="range-search">Range search</option>
-                                    <option value="grouping-search">Grouping search</option>
+                                <label for="search_mode"></label>
+                                <select name="search-mode" id="search_mode">
+                                    <option value="normal_search">Normal search</option>
+                                    <option value="range_search">Range search</option>
+                                    <option value="grouping_search">Grouping search</option>
                                 </select>                            
                             </div>
-                            <div id="range-search" class="hideable">
+                            <div id="range_search" class="hideable">
                                 <div class="param-enter">
                                     <label for="radius">
                                         <span>Radius</span>
@@ -94,31 +95,31 @@
                                 </div>
 
                                 <div class="param-enter">
-                                    <label for="range-filter">
+                                    <label for="range_filter">
                                         <span>Range filter</span>
-                                        <input id="range-filter" type="number">
+                                        <input id="range_filter" type="number">
                                     </label>
                                 </div>
                             </div>
-                            <div id="grouping-search" class="hideable">
+                            <div id="grouping_search" class="hideable">
                                 <div class="param-enter">
-                                    <label for="group-by-field">
+                                    <label for="group_by_field">
                                         <span>Group by field</span>
-                                        <input id="group-by-field" type="text">
+                                        <input id="group_by_field" type="text">
                                     </label>
                                 </div>
 
                                 <div class="param-enter">
-                                    <label for="group-size">
+                                    <label for="group_size">
                                         <span>Group size</span>
-                                        <input id="group-size" type="number">
+                                        <input id="group_size" type="number">
                                     </label>
                                 </div>
 
                                 <div class="param-enter">
-                                <label for="strict-group-size">
+                                <label for="strict_group_size">
                                     <span>Strict group size</span>
-                                    <input id="strict-group-size" type="checkbox">
+                                    <input id="strict_group_size" type="checkbox">
                                 </label>
                                 </div>
                             </div>
@@ -216,6 +217,6 @@
             <button class='submit-button'>SUBMIT</button>
         </div>
 
-        <script type="text/javascript" src="js/script.js"></script>
+        <script src="{{ url_for('static', filename='js/script.js') }}"></script>
     </body>
 </html>
