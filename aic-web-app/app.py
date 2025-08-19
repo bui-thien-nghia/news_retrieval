@@ -1,8 +1,9 @@
 from utils.py_utils import *
 from flask import Flask, request, jsonify, render_template
 
-host = '0.0.0.0' #when preparing for production, change this to the EC2 public IP
+host = '0.0.0.0' # when preparing for production, change this to the EC2 public IP
 app = Flask(__name__)
+app.debug = True # Set to False in production
 
 @app.route('/')
 def home():
@@ -28,10 +29,17 @@ def handle_request():
         elif f_name == 'get_all_entities':
             print(f"Get all entities called")
             result = get_all_entities(**args)
+            print(f"Result: {len(result)}")
+            return jsonify(result)
+        elif f_name == 'get_dataset_from_s3':
+            print(f"Get dataset from S3 called")
+            result = get_dataset_from_s3(**args)
+            print(f"Result: {len(result)}")
             return jsonify(result)
         else:
             raise ValueError(f'Function {f_name} is not defined in this module.')
     except Exception as e:
+        print(f"Error: {e}")
         return jsonify({'error': str(e)}), 500
     
 if __name__ == '__main__':

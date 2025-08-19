@@ -6,6 +6,8 @@ import torch.nn.functional as F
 from open_clip import create_model_from_pretrained, get_tokenizer
 from pymilvus import MilvusClient, connections, Collection
 from transformers import AutoTokenizer, AutoModelForSeq2SeqLM
+import boto3
+from io import BytesIO
 
 # Load essentials
 model, preprocess = create_model_from_pretrained('hf-hub:apple/DFN5B-CLIP-ViT-H-14-384')
@@ -13,6 +15,13 @@ device = 'cuda' if torch.cuda.is_available() else 'cpu'
 model.eval()
 model.to(device)
 tokenizer = get_tokenizer('ViT-H-14')
+
+s3 = boto3.client(
+    's3',
+    region_name='ap-southeast-2',
+    aws_access_key_id='AKIAQDPHTGR3B5QJOU6M',
+    aws_secret_access_key='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',
+)
 
 translator_name = 'VietAI/envit5-translation'
 translate_tokenizer = AutoTokenizer.from_pretrained(translator_name)
@@ -30,14 +39,14 @@ connections.connect(
 )
 
 # Function define
-def get_all_entities(collection_name: str, batch_size: 1000):
+def get_all_entities(collection_name: str, batch_size: 100):
     '''
     Kéo hết dataset về web để phục vụ hiển thị khi không có truy vấn.
 
     Arguments:
     -----
     :collection_name: Tên của bộ sưu tập dùng để truy vấn, được lưu trên Zilliz Cloud
-    :batch_size: Số kết quả của mỗi trang của iterator. Mặc định là 1000
+    :batch_size: Số kết quả của mỗi trang của iterator. Mặc định là 100
 
     Return:
     :all_entities (list[dict]): Danh sách của tất cả hình ảnh kèm metadata
@@ -61,6 +70,20 @@ def get_all_entities(collection_name: str, batch_size: 1000):
 
     return all_entities
 
+
+def get_dataset_from_s3(bucket_name: str, key: str):
+    s3.put_bucket_accelerate_configuration(
+        Bucket=bucket_name,
+        AccelerateConfiguration={
+            'Status': 'Enabled'
+        }
+    )
+
+    response = s3.get_object(Bucket=bucket_name, Key=key)
+    buffer = BytesIO(response['Body'].read())
+    dataset = list(torch.load(buffer).values())
+
+    return dataset
 
 def prepare_query(query: str, lang: str):
     """
