@@ -11,17 +11,21 @@
 
     <body>
         <div class="top-panel">
-            <div class="setting" id="btn-open" style="cursor: pointer;"> ⚙ Color </div>
-            <div id="modal-container">
-                <div class="modal" id="modal-demo">
-                    <div class="modal-header">
-                        <h3>Settings</h3>
-                        <button id="btn-close"><i class="fa-solid fa-xmark"></i></button>
-                    </div>
-                    <div class="modal-body">
-                        <label>Background Color</label>
-                            <span><input type="text" id="mau"></span>
-                            <span><input type="submit" id="sub_btn" value="Save"></span>
+            <div class="color-settings">
+                <div id="color_open"><span>⚙ Color</span></div>
+                <div id="modal_container">
+                    <div class="modal">
+                        <div class="color-close"><span>X</span></div>
+                        <div class="modal-header">
+                            <h3>Settings</h3>
+                        </div>
+                        <div class="modal-body">
+                            <label for="bg_color">
+                                <span>Background Color</span>
+                                <input type="text" id="bg_color">
+                            </label>
+                        </div>
+                        <div class="modal-footer"><span>Save</span></div>
                     </div>
                 </div>
             </div>
@@ -31,6 +35,7 @@
                     <input type="range" id="num_columns" value=3 min=1 max=10>
                 </label>
             </div>
+            <div class="show-recheck" id="show_recheck"><span>Recheck</span></div>
         </div>
 
         <div class="left-panel">
@@ -228,7 +233,6 @@
         </div>
 
         <div class="right-panel">
-            <span class="title"><strong>RECHECK</strong></span>
             <section class="image-display" id="recheck">
                 <div class="box"><div class="rotate"></div><div class="oval"></div></div>
                 <div class="box"><div class="rotate"></div><div class="oval"></div></div>

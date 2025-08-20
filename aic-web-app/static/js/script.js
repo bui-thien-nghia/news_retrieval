@@ -1,11 +1,6 @@
-// Setting color
-const open = document.getElementById('btn-open');
-const close = document.getElementById('btn-close');
-const modal_container = document.getElementById('modal-container');
-const modal_demo = document.getElementById('modal-demo');
-const saving = document.getElementById('sub_btn');
+// Setup
 const loadBatchSize = 100;
-const numTags = 7; // Number of tags to display
+const numTags = 7;
 var isLoadingBatch = false;
 var currentLoadIndex = 0;
 var datasetNoFeature = [];
@@ -30,20 +25,19 @@ async function callPythonFunction(f_name, args) {
 // Metadata tag switch
 function addTagSwitchEventListener() {
     const tags = document.querySelectorAll('.tag');
-    for (var i = currentLoadIndex * numTags; i < tags.length; i++) {
-        var tag = tags[i];
-        var tagSwitchId = tag.id;
+    for (let i = currentLoadIndex * numTags; i < tags.length; i++) {
+        let tag = tags[i];
+        let tagSwitchId = tag.id;
         tagSwitchId = tagSwitchId.replace('tag_', '');
-        var tagSwitch = document.getElementById(tagSwitchId);
-        tag.style.display = tagSwitch.checked ? 'block' : 'none';
-        tagSwitch.addEventListener('change', function() {
+        let tagSwitch = document.getElementById(tagSwitchId)
+        tagSwitch.addEventListener('change', () => {
             tag.style.display = tagSwitch.checked ? 'block' : 'none';
         });
+        tag.style.display = tagSwitch.checked ? 'block' : 'none';
     }
 }
 
 function loadImageFromS3(container, listEntities, bucket, region) {
-    console.log('Loading images from S3...');
     if (isLoadingBatch) {
         console.log('Already loading a batch, skipping this call.');
         return; // Prevent multiple concurrent loads
@@ -56,7 +50,6 @@ function loadImageFromS3(container, listEntities, bucket, region) {
                 const entity = listEntities[i];
                 const resultItem = document.createElement('div');
                 resultItem.className = 'box';
-                resultItem.style.backgroundImage = `url(\'https://${bucket}.s3.${region}.amazonaws.com/${entity.img_key}\')`;
                 resultItem.innerHTML = `
                     <div class="image-layer">
                         <img src="https://${bucket}.s3.${region}.amazonaws.com/${entity.img_key}" alt="Image broken:<" loading="lazy">
@@ -82,23 +75,119 @@ function loadImageFromS3(container, listEntities, bucket, region) {
         currentLoadIndex += loadBatchSize;
         isLoadingBatch = false;
     }, 0);
-}
-open.addEventListener('click', ()=>{
-    modal_container.classList.add('show');
-});
-close.addEventListener('click', ()=>{
-    modal_container.classList.remove('show');
-});
 
-modal_container.addEventListener('click', (e)=>{
-    if(!modal_demo.contains(e.target)){
-        close.click();
-    }
+    isLoadingBatch = true;
+}
+
+// Color settings
+const modal_container = document.getElementById('modal_container');
+const popupOpen = document.getElementById('color_open');
+const popupSaving = document.querySelector('.modal-footer');
+const popupClose = document.querySelector('.color-close')
+
+popupOpen.addEventListener('click', ()=>{
+    modal_container.classList.toggle('show');
 });
             
-saving.addEventListener('click', ()=>{
-    const color_val = document.getElementById('mau').value;
+popupSaving.addEventListener('click', ()=>{
+    const color_val = document.getElementById('bg_color').value;
     document.body.style.backgroundColor = color_val;
+});
+
+popupClose.addEventListener('click', () => {
+    modal_container.classList.toggle('show')
+});
+
+
+// Show/hide recheck panel
+var recheckShown = false;
+document.querySelector('.show-recheck').addEventListener('click', () => {
+    const body = document.body;
+    if (!recheckShown) {
+        body.style.gridTemplateAreas =`
+            "h h h"
+            "l m r"
+        `;
+        recheckShown = true;
+        console.log("Recheck shown");
+    } else {
+        body.style.gridTemplateAreas =`
+            "h h h"
+            "l m m"
+        `;
+        recheckShown = false;
+        console.log("Recheck hidden");
+    }
+});
+
+// Scroll only appears a set number of images
+document.querySelector('.middle-panel').addEventListener('scroll', function() {
+    const container = this;
+    const scrollHeight = container.scrollHeight;
+    const scrollTop = container.scrollTop;
+    const clientHeight = container.clientHeight;
+    if (scrollTop + clientHeight >= scrollHeight - 100 && currentLoadIndex < currentResult.length && !isLoadingBatch) {
+        loadImageFromS3(container, currentResult, 'aic24', 'ap-southeast-2');
+    }
+});
+
+// Pre-load images (currently pre-load last year's dataset)
+document.addEventListener('DOMContentLoaded', async () => {
+    args = {
+        bucket_name: 'aic24',
+        key: 'aic24/dataset-aic24-no-feature.pt'
+    };
+    const resultContainer = document.querySelector(".middle-panel");
+    resultContainer.innerHTML = '<span>Loading dataset...</span>';
+    if (datasetNoFeature.length == 0) {
+        const result = await callPythonFunction('get_dataset_from_s3', args).catch(error => {
+            console.error('Error fetching all entities:', error);
+            return {};
+        });
+        datasetNoFeature = [...Object.values(result)];
+    }
+
+    currentResult = [...datasetNoFeature];
+    currentLoadIndex = 0; // Reset preload index
+    if (datasetNoFeature.length === 0) {
+        resultContainer.innerHTML = '<span>Nothing to load</span>';
+        return;
+    }
+    resultContainer.innerHTML = ''; // Clear previous content
+    loadImageFromS3(resultContainer, datasetNoFeature, 'aic24', 'ap-southeast-2');
+});
+
+// Search mode change handler
+document.addEventListener('DOMContentLoaded', function() {
+    const search_mode = document.getElementById('search_mode');
+    const all_content = document.querySelectorAll('.hideable');
+
+    function hideAllContent() {
+        all_content.forEach(content => {
+            content.style.display = 'none';
+        });
+    }
+    hideAllContent();
+
+    search_mode.addEventListener('change', function() {
+        hideAllContent();
+
+        const selectedValue = this.value;
+        const targetContent = document.getElementById(selectedValue);
+
+        if (targetContent) {
+            targetContent.style.display = 'flex';
+            targetContent.style.flexDirection = 'column';
+        }
+    });
+
+    const initialSelectedValue = search_mode.value;
+    const initialTargetContent = document.getElementById(initialSelectedValue);
+    if (initialTargetContent) {
+        initialTargetContent.style.display = 'flex';
+        initialTargetContent.style.flexDirection = 'column';
+    
+    }
 });
 
 // Search bar
@@ -142,78 +231,7 @@ document.getElementById("search_button").addEventListener("click", async () => {
     loadImageFromS3(resultContainer, currentResult, 'aic24', 'ap-southeast-2');
 });
 
-// Search mode change handler
-document.addEventListener('DOMContentLoaded', function() {
-    const search_mode = document.getElementById('search_mode');
-    const all_content = document.querySelectorAll('.hideable');
-
-    function hideAllContent() {
-        all_content.forEach(content => {
-            content.style.display = 'none';
-        });
-    }
-    hideAllContent();
-
-    search_mode.addEventListener('change', function() {
-        hideAllContent();
-
-        const selectedValue = this.value;
-        const targetContent = document.getElementById(selectedValue);
-
-        if (targetContent) {
-            targetContent.style.display = 'flex';
-            targetContent.style.flexDirection = 'column';
-        }
-    });
-
-    const initialSelectedValue = search_mode.value;
-    const initialTargetContent = document.getElementById(initialSelectedValue);
-    if (initialTargetContent) {
-        initialTargetContent.style.display = 'flex';
-        initialTargetContent.style.flexDirection = 'column';
-    
-    }
-});
-
 //Adjust column number
 document.getElementById('num_columns').addEventListener('input', function() {
     document.documentElement.style.setProperty('--numcol', this.value);
-});
-
-// Pre-load images (currently pre-load last year's dataset)
-document.addEventListener('DOMContentLoaded', async () => {
-    console.log('Pre-loading images...');
-    args = {
-        bucket_name: 'aic24',
-        key: 'aic24/dataset-aic24-no-feature.pt'
-    };
-    const resultContainer = document.getElementsByClassName("middle-panel")[0];
-    resultContainer.innerHTML = '<span>Loading dataset...</span>';
-    if (datasetNoFeature.length == 0) {
-        const result = await callPythonFunction('get_dataset_from_s3', args).catch(error => {
-            console.error('Error fetching all entities:', error);
-            return {};
-        });
-        datasetNoFeature = [...Object.values(result)];
-    }
-
-    currentResult = [...datasetNoFeature];
-    currentLoadIndex = 0; // Reset preload index
-    if (datasetNoFeature.length === 0) {
-        resultContainer.innerHTML = '<span>Nothing to load</span>';
-        return;
-    }
-    resultContainer.innerHTML = ''; // Clear previous content
-    loadImageFromS3(resultContainer, datasetNoFeature, 'aic24', 'ap-southeast-2');
-});
-
-// Scroll only appears a set number of images
-document.querySelector('.middle-panel').addEventListener('scroll', function() {
-    const container = this;
-    const scrollHeight = container.scrollHeight;
-    const scrollTop = container.scrollTop;
-    const clientHeight = container.clientHeight;
-    if (scrollTop + clientHeight >= scrollHeight - 100 && currentLoadIndex < currentResult.length && !isLoadingBatch) {
-        loadImageFromS3(container, currentResult, 'aic24', 'ap-southeast-2');
-    }
 });

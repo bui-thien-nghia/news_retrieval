@@ -1,6 +1,5 @@
 # Module setup
-import sys
-import json
+import os
 import torch
 import torch.nn.functional as F
 from open_clip import create_model_from_pretrained, get_tokenizer
@@ -72,18 +71,24 @@ def get_all_entities(collection_name: str, batch_size: 100):
 
 
 def get_dataset_from_s3(bucket_name: str, key: str):
-    s3.put_bucket_accelerate_configuration(
-        Bucket=bucket_name,
-        AccelerateConfiguration={
-            'Status': 'Enabled'
-        }
-    )
+    buffer = None
+    file_name = key.split('/')[-1]
+    if os.path.exists(file_name):
+        buffer = file_name
+        dataset = torch.load(file_name)
+    else:
+        s3.put_bucket_accelerate_configuration(
+            Bucket=bucket_name,
+            AccelerateConfiguration={
+                'Status': 'Enabled'
+            }
+        )
+        response = s3.get_object(Bucket=bucket_name, Key=key)
+        buffer = BytesIO(response['Body'].read())
+        dataset = torch.load(buffer)
+        torch.save(dataset, file_name)
 
-    response = s3.get_object(Bucket=bucket_name, Key=key)
-    buffer = BytesIO(response['Body'].read())
-    dataset = list(torch.load(buffer).values())
-
-    return dataset
+    return list(dataset.values())
 
 def prepare_query(query: str, lang: str):
     """
