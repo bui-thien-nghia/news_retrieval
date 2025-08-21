@@ -6,51 +6,57 @@
         <meta name="description" content="A web for image search and display at ease">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>Team TH3N's image search web</title>
+        <link rel="icon" href="{{ url_for('static', filename='icon.png') }}" type="image/x-icon">
         <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}" type="text/css">
     </head>
 
     <body>
         <div class="top-panel">
-            <div class="color-settings">
+            <div class="color-settings button">
                 <div id="color_open"><span>⚙ Color</span></div>
                 <div id="modal_container">
-                    <div class="modal">
+                    <div class="modal control-element">
                         <div class="color-close"><span>X</span></div>
                         <div class="modal-header">
                             <h3>Settings</h3>
                         </div>
                         <div class="modal-body">
-                            <label for="bg_color">
-                                <span>Background Color</span>
-                                <input type="text" id="bg_color">
+                            <label for="control_color">
+                                <span>Control session color</span>
+                                <input type="text" id="control_color" value="ex. #0f0f0f">
+                            </label>
+                            <label for="display_color">
+                                <span>Display session color</span>
+                                <input type="text" id="display_color" value="ex. #0f0f0f">
+                            </label>
+                            <label for="button_color">
+                                <span>Button Color</span>
+                                <input type="text" id="button_color" value="ex. #0f0f0f">
+                            </label>
+                            <label for="border_color">
+                                <span>Border color</span>
+                                <input type="text" id="border_color" value="ex. #0f0f0f">
                             </label>
                         </div>
-                        <div class="modal-footer"><span>Save</span></div>
+                        <div class="modal-footer button"><span>Save</span></div>
                     </div>
                 </div>
             </div>
-            <div class="slider">
+            <div class="slider control-element">
                 <label for="num_columns">
                     <span>Number of columns</span>
                     <input type="range" id="num_columns" value=3 min=1 max=10>
                 </label>
             </div>
-            <div class="show-recheck" id="show_recheck"><span>Recheck</span></div>
+            <div class="show-recheck button" id="show_recheck"><span>Recheck</span></div>
         </div>
 
-        <div class="left-panel">
+        <div class="left-panel control-element">
             <div class="search-area">
-                <table>
-                    <tr>
-                        <td>
-                            <textarea name="key_query" id="key_query" class="search-input" rows="4" cols="30"></textarea>
-                        </td>
-                        <td>
-                            <button type="button" class="search-button" id="search_button">🔍</button>
-                        </td>
-                    </tr>
-                </table>
-
+                <div class="query-session">
+                    <textarea name="key_query" id="key_query" class="search-input" rows="4"></textarea>
+                    <button type="button" class="search-button button" id="search_button">🔍</button>
+                </div>
                 <div class="param-enter">
                     <label for="top_k">
                         <span>Top K</span>
@@ -187,7 +193,7 @@
             </div>
         </div>
 
-        <div class="middle-panel">
+        <div class="middle-panel display-element">
             <div class="box">
                 <div class="image-layer">
                     <img src="https://aic24.s3.ap-southeast-2.amazonaws.com/aic24/Keyframes_L12/keyframes/L12_V012/123.jpg" alt="" loading="lazy">
@@ -232,7 +238,7 @@
             </div>
         </div>
 
-        <div class="right-panel">
+        <div class="right-panel display-element">
             <section class="image-display" id="recheck">
                 <div class="box"><div class="rotate"></div><div class="oval"></div></div>
                 <div class="box"><div class="rotate"></div><div class="oval"></div></div>
@@ -243,7 +249,7 @@
                 <div class="box"><div class="rotate"></div><div class="oval"></div></div> 
                 <div class="box"><div class="rotate"></div><div class="oval"></div></div> 
             </section>
-            <button class='submit-button'>SUBMIT</button>
+            <div class='submit-button button'>SUBMIT</div>
         </div>
 
         <script src="{{ url_for('static', filename='js/script.js') }}"></script>
