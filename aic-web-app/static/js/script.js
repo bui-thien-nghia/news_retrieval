@@ -235,3 +235,92 @@ document.getElementById("search_button").addEventListener("click", async () => {
 document.getElementById('num_columns').addEventListener('input', function() {
     document.documentElement.style.setProperty('--numcol', this.value);
 });
+
+//Filter Sorting
+function sorting_handler(event, input_id, entities){
+    if (event.key === 'Enter'){
+        const resultContainer = document.querySelector(".middle-panel");
+        const text_value = document.getElementById(input_id).value;
+        const filter_name = input_id.replace('sort_', '');
+        result_list = [];
+        result_final =[];
+        currentResult = [];
+
+        switch (filter_name){
+            case 'video_id':{
+                entities.forEach(entity =>{
+                    if (text_value == entity.video_id)
+                        result_list.push(entity);
+                });
+                break;
+            }
+            case 'frame_id':{
+                entities.forEach(entity =>{
+                    if (text_value == entity.frame_id)
+                        result_list.push(entity);
+                });
+                break;
+            }
+            case 'frame_order':{
+                entities.forEach(entity =>{
+                    if (text_value == entity.frame_order)
+                        result_list.push(entity);
+                });
+                break;
+            }
+            case 'time_order':{
+                entities.forEach(entity =>{
+                    if (text_value == entity.time_order)
+                        result_list.push(entity);
+                });
+                break;
+            }
+            case 'answer_key':{
+                entities.forEach(entity =>{
+                    if (text_value == entity.answer_key)
+                        result_list.push(entity);
+                });
+                break;
+            }
+            case 'youtube_linl':{
+                entities.forEach(entity =>{
+                    if (text_value == entity.youtube_link)
+                        result_list.push(entity);
+                });
+                break;
+            }
+            case 'publish_date':{
+                entities.forEach(entity =>{
+                    if (text_value == entity.publish_date)
+                        result_list.push(entity);
+                });
+                break;
+            }
+        };
+        
+        result_final = Object.values(result_list);
+        currentResult = [...Object.values(result_list)];
+        currentLoadIndex = 0;
+        resultContainer.innerHTML ='';
+        loadImageFromS3(resultContainer,result_final,'aic24', 'ap-southeast-2');
+    };
+}
+
+document.getElementById('sort_video_id').addEventListener('keydown', function(event){
+    sorting_handler(event, 'sort_video_id',currentResult);
+});
+document.getElementById('sort_frame_id').addEventListener('keydown', function(event){
+    sorting_handler(event, 'sort_frame_id',currentResult);
+});
+document.getElementById('sort_time_order').addEventListener('keydown', function(event){
+    sorting_handler(event, 'sort_time_order',currentResult);
+});
+document.getElementById('sort_frame_order').addEventListener('keydown', function(event){
+    sorting_handler(event, 'sort_frame_order',currentResult);
+});
+document.getElementById('sort_answer_key').addEventListener('keydown', function(event){
+    sorting_handler(event, 'sort_answer_key',currentResult);
+});
+document.getElementById('sort_publish_date').addEventListener('keydown', function(event){
+    sorting_handler(event, 'sort_publish_date',currentResult);
+});
