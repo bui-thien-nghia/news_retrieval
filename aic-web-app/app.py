@@ -1,7 +1,6 @@
-# from utils.py_utils import *
+from utils.py_utils import *
 from flask import Flask, request, jsonify, render_template
 
-host = '13.54.105.166' # when preparing for production, change this to the EC2 public IP
 app = Flask(__name__)
 app.debug = False # Set to False in production
 
@@ -43,4 +42,4 @@ def handle_request():
         return jsonify({'error': str(e)}), 500
     
 if __name__ == '__main__':
-    app.run(host=host)
+    app.run(host="0.0.0.0")
