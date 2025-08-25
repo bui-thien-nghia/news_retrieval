@@ -5,8 +5,6 @@ import torch.nn.functional as F
 from open_clip import create_model_from_pretrained, get_tokenizer
 from pymilvus import MilvusClient, connections, Collection
 from transformers import AutoTokenizer, AutoModelForSeq2SeqLM
-import boto3
-from io import BytesIO
 
 # Load essentials
 model, preprocess = create_model_from_pretrained('hf-hub:apple/DFN5B-CLIP-ViT-H-14-384')
@@ -14,13 +12,6 @@ device = 'cuda' if torch.cuda.is_available() else 'cpu'
 model.eval()
 model.to(device)
 tokenizer = get_tokenizer('ViT-H-14')
-
-s3 = boto3.client(
-    's3',
-    region_name='ap-southeast-2',
-    aws_access_key_id='AKIAQDPHTGR3B5QJOU6M',
-    aws_secret_access_key='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',
-)
 
 translator_name = 'VietAI/envit5-translation'
 translate_tokenizer = AutoTokenizer.from_pretrained(translator_name)
@@ -30,65 +21,21 @@ uri = 'https://in03-cbdb10d1d199984.serverless.aws-eu-central-1.cloud.zilliz.com
 token ='6305ff67695e59bf211ca717cb68f74f7367ccfd56195824ba6aad7c07f5924cc6c9da8aadec4354aedc193a997225494903a9d7'
 client = MilvusClient(
     uri=uri,
-    token=token
+    token=token,
 )
 connections.connect(
     uri=uri,
-    token=token
+    token=token,
 )
 
 # Function define
-def get_all_entities(collection_name: str, batch_size: 100):
-    '''
-    Kéo hết dataset về web để phục vụ hiển thị khi không có truy vấn.
-
-    Arguments:
-    -----
-    :collection_name: Tên của bộ sưu tập dùng để truy vấn, được lưu trên Zilliz Cloud
-    :batch_size: Số kết quả của mỗi trang của iterator. Mặc định là 100
-
-    Return:
-    :all_entities (list[dict]): Danh sách của tất cả hình ảnh kèm metadata
-    '''
-    # Get iterator
-    collection = Collection(collection_name)
-    iterator = collection.query_iterator(
-        batch_size=batch_size,
-        expr="id >= 0",
-        output_fields=["*"]
-    )
-
-    # Get all entities out of iterator
-    all_entities = []
-    while True:
-        batch = iterator.next()
-        if not batch:
-            iterator.close()
-            break
-        all_entities.extend(batch)
-
-    return all_entities
-
-
-def get_dataset_from_s3(bucket_name: str, key: str):
-    buffer = None
-    file_name = key.split('/')[-1]
+def get_dataset_from_local(file_name: str):
     if os.path.exists(file_name):
-        buffer = file_name
         dataset = torch.load(file_name)
+        return list(dataset.values())
     else:
-        s3.put_bucket_accelerate_configuration(
-            Bucket=bucket_name,
-            AccelerateConfiguration={
-                'Status': 'Enabled'
-            }
-        )
-        response = s3.get_object(Bucket=bucket_name, Key=key)
-        buffer = BytesIO(response['Body'].read())
-        dataset = torch.load(buffer)
-        torch.save(dataset, file_name)
-
-    return list(dataset.values())
+        print('No such dataset found.')
+        return []
 
 def prepare_query(query: str, lang: str):
     """
@@ -124,14 +71,28 @@ def prepare_query(query: str, lang: str):
     return text_feature
 
 
-def search(query: str, lang: str, collection_name: str, top_k: int, **options):
+def get_milvus_feature(key: str, collection_name: str):
+    collection = Collection(collection_name)
+    iterator = collection.query_iterator(
+        batch_size=1,
+        expr=f'img_key == \"{key}\"',
+        output_fields=["vector"]
+    )
+
+    result = iterator.next()[0]['vector']
+    iterator.close()
+
+    return result
+
+
+def search(query: any, lang: str, collection_name: str, top_k: int, **options):
     '''
     Trả về danh sách thứ tự truy vấn xếp theo thứ tự khoảng cách không tăng.
     Khi truy vấn, điền hết tất cả argument vào function. Nếu không điền ô nào, ô đó trả về None.
 
     Arguments (BẮT BUỘC):
     -----
-    :query: Câu truy vấn
+    :query: Câu truy vấn (str) HOẶC đặc trưng của hình có sẵn (list[float])
     :lang: Ngôn ngữ truy vấn
     :collection_name: Tên của bộ sưu tập dùng để truy vấn, được lưu trên Zilliz Cloud
     :top_k: Số lượng hình trả về
@@ -149,12 +110,12 @@ def search(query: str, lang: str, collection_name: str, top_k: int, **options):
     ----
     :search_result (list[dict]): Danh sách kết quả truy vấn
     '''
-    # Prepare search arguments
+    # Prepare search 
     args = {
         'collection_name': collection_name,
-        'data': [prepare_query(query, lang)],
+        'data': [prepare_query(query, lang)] if type(query) == str else [query],
         'limit': top_k,
-        'output_fields': ['*'],
+        'output_fields': options['output_fields'] if 'output_fields' in options else ['*'],
         'search_params': {
             'metric_type': 'COSINE',
             'params': {

@@ -25,15 +25,14 @@ def handle_request():
             print(f"Search called")
             result = search(**args)
             return jsonify(result)
-        elif f_name == 'get_all_entities':
-            print(f"Get all entities called")
-            result = get_all_entities(**args)
+        elif f_name == 'get_dataset_from_local':
+            print(f"Get dataset from S3 called")
+            result = get_dataset_from_local(**args)
             print(f"Result: {len(result)}")
             return jsonify(result)
-        elif f_name == 'get_dataset_from_s3':
-            print(f"Get dataset from S3 called")
-            result = get_dataset_from_s3(**args)
-            print(f"Result: {len(result)}")
+        elif f_name == 'get_milvus_feature':
+            print(f"Get Milvus feature called")
+            result = get_milvus_feature(**args)
             return jsonify(result)
         else:
             raise ValueError(f'Function {f_name} is not defined in this module.')

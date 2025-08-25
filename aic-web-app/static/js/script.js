@@ -1,10 +1,12 @@
 // Setup
 const loadBatchSize = 100;
 const numTags = 7;
+const output_fields = ['img_key', 'video_id', 'frame_id', 'time_order', 'frame_order', 'answer_key', 'youtube_link', 'publish_date']
 var isLoadingBatch = false;
 var currentLoadIndex = 0;
-var datasetNoFeature = [];
+var currentDataset = [];
 var currentResult = [];
+var currentDisplay = [];
 var searchHistory = [];
 
 async function callPythonFunction(f_name, args) {
@@ -23,17 +25,61 @@ async function callPythonFunction(f_name, args) {
 }
 
 // Metadata tag switch
-function addTagSwitchEventListener() {
+function addImageBoxEventListeners() {
     const tags = document.querySelectorAll('.tag');
+    const cont_buttons = document.querySelectorAll('.cont-search');
+    // Tag switch
     for (let i = currentLoadIndex * numTags; i < tags.length; i++) {
         let tag = tags[i];
         let tagSwitchId = tag.id;
         tagSwitchId = tagSwitchId.replace('tag_', '');
-        let tagSwitch = document.getElementById(tagSwitchId)
+        let tagSwitch = document.getElementById(tagSwitchId);
         tagSwitch.addEventListener('change', () => {
             tag.style.display = tagSwitch.checked ? 'block' : 'none';
         });
         tag.style.display = tagSwitch.checked ? 'block' : 'none';
+    }
+
+    //Continue searching button
+    for (let i = currentLoadIndex; i < cont_buttons.length; i++) {
+        let button = cont_buttons[i];
+        button.addEventListener('click', async () => {
+            resultContainer.innerHTML = '<span>Getting image feature...</span>';
+            let image_feature = await callPythonFunction('get_milvus_feature', {
+                key: button.getAttribute('data-img_key'),
+                collection_name: document.getElementById("collection_name").value
+            }).catch(error => {
+                console.error(`Error fetching feature: ${error}`);
+                return [];
+            });
+
+            let args = {
+                query: image_feature,
+                lang: document.getElementById("lang").value,
+                collection_name: document.getElementById("collection_name").value,
+                top_k: Number(document.getElementById("top_k").value),
+                ef: Number(document.getElementById("ef").value),
+                output_fields: output_fields
+            };
+
+            let resultContainer = document.querySelector(".middle-panel");
+            resultContainer.innerHTML = '<span>Searching...</span>';
+            let result = await callPythonFunction('search', args).catch(error => {
+                console.error('Error fetching search results:', error);
+                resultContainer.innerHTML = '<span>Error fetching results</span>';
+                return {};
+            });
+            
+            currentResult = [...Object.values(result)];
+            currentDisplay = [...Object.values(result)];
+            currentLoadIndex = 0; // Reset preload index
+            if (currentResult.length === 0) {
+                resultContainer.innerHTML = '<span>No results found</span>';
+                return;
+            }
+            resultContainer.innerHTML = ''; // Clear previous content
+            loadImageFromS3(resultContainer, currentDisplay, 'aic24', 'ap-southeast-2');
+        });
     }
 }
 
@@ -63,6 +109,9 @@ function loadImageFromS3(container, listEntities, bucket, region) {
                         <div class="tag tag-youtube_link" id="tag_youtube_link"><a target="_blank" href=${entity.youtube_link}>Click here</a></div>
                         <div class="tag tag-publish_date" id="tag_publish_date">${entity.publish_date}</div>
                     </div>
+                    <div class="search-layer">
+                        <div class="button cont-search" data-img_key=${entity.img_key}>🔍</div>
+                    </div>
                 `
                 container.appendChild(resultItem);
             } catch (error) {
@@ -71,7 +120,7 @@ function loadImageFromS3(container, listEntities, bucket, region) {
             }
         }
 
-        addTagSwitchEventListener();
+        addImageBoxEventListeners();
         currentLoadIndex += loadBatchSize;
         isLoadingBatch = false;
     }, 0);
@@ -127,34 +176,33 @@ document.querySelector('.middle-panel').addEventListener('scroll', function() {
     const scrollTop = container.scrollTop;
     const clientHeight = container.clientHeight;
     if (scrollTop + clientHeight >= scrollHeight - 100 && currentLoadIndex < currentResult.length && !isLoadingBatch) {
-        loadImageFromS3(container, currentResult, 'aic24', 'ap-southeast-2');
+        loadImageFromS3(container, currentDisplay, 'aic24', 'ap-southeast-2');
     }
 });
 
 // Pre-load images (currently pre-load last year's dataset)
 document.addEventListener('DOMContentLoaded', async () => {
     args = {
-        bucket_name: 'aic24',
-        key: 'aic24/dataset-aic24-no-feature.pt'
+        file_name: 'dataset-aic24-no-feature.pt'
     };
     const resultContainer = document.querySelector(".middle-panel");
     resultContainer.innerHTML = '<span>Loading dataset...</span>';
-    if (datasetNoFeature.length == 0) {
-        const result = await callPythonFunction('get_dataset_from_s3', args).catch(error => {
+    if (currentDataset.length == 0) {
+        const result = await callPythonFunction('get_dataset_from_local', args).catch(error => {
             console.error('Error fetching all entities:', error);
             return {};
         });
-        datasetNoFeature = [...Object.values(result)];
+        currentDataset = [...Object.values(result)];
     }
 
-    currentResult = [...datasetNoFeature];
+    currentDisplay = [...currentDataset];
     currentLoadIndex = 0; // Reset preload index
-    if (datasetNoFeature.length === 0) {
+    if (currentDataset.length === 0) {
         resultContainer.innerHTML = '<span>Nothing to load</span>';
         return;
     }
     resultContainer.innerHTML = ''; // Clear previous content
-    loadImageFromS3(resultContainer, datasetNoFeature, 'aic24', 'ap-southeast-2');
+    loadImageFromS3(resultContainer, currentDisplay, 'aic24', 'ap-southeast-2');
 });
 
 // Search mode change handler
@@ -197,23 +245,21 @@ document.getElementById("search_button").addEventListener("click", async () => {
         lang: document.getElementById("lang").value,
         collection_name: document.getElementById("collection_name").value,
         top_k: Number(document.getElementById("top_k").value),
-        options: {
-            ef: Number(document.getElementById("ef").value),
-        }
+        ef: Number(document.getElementById("ef").value),
+        output_fields: output_fields
     };
     
     var searchMode = document.getElementById("search_mode").value;
     if (searchMode === "range_search") {
-        args.options.radius = Number(document.getElementById("radius").value);
-        args.options.range_filter = Number(document.getElementById("range_filter").value);
+        args.radius = Number(document.getElementById("radius").value);
+        args.range_filter = Number(document.getElementById("range_filter").value);
     } else if (searchMode === "grouping_search") {
-        args.options.group_by_field = document.getElementById("group_by_field").value;
-        args.options.group_size = Number(document.getElementById("group_size").value);
-        args.options.strict_group_size = document.getElementById("strict_group_size").checked;
+        args.group_by_field = document.getElementById("group_by_field").value;
+        args.group_size = Number(document.getElementById("group_size").value);
+        args.strict_group_size = document.getElementById("strict_group_size").checked;
     }
 
     const resultContainer = document.querySelector(".middle-panel");
-    currentResult = []; // Reset current result
     resultContainer.innerHTML = '<span>Searching...</span>';
     const result = await callPythonFunction('search', args).catch(error => {
         console.error('Error fetching search results:', error);
@@ -222,13 +268,14 @@ document.getElementById("search_button").addEventListener("click", async () => {
     });
     
     currentResult = [...Object.values(result)];
+    currentDisplay = [...Object.values(result)];
     currentLoadIndex = 0; // Reset preload index
     if (currentResult.length === 0) {
         resultContainer.innerHTML = '<span>No results found</span>';
         return;
     }
     resultContainer.innerHTML = ''; // Clear previous content
-    loadImageFromS3(resultContainer, currentResult, 'aic24', 'ap-southeast-2');
+    loadImageFromS3(resultContainer, currentDisplay, 'aic24', 'ap-southeast-2');
 });
 
 //Adjust column number
