@@ -44,6 +44,7 @@ function addImageBoxEventListeners() {
     for (let i = currentLoadIndex; i < cont_buttons.length; i++) {
         let button = cont_buttons[i];
         button.addEventListener('click', async () => {
+            let resultContainer = document.querySelector(".middle-panel");
             resultContainer.innerHTML = '<span>Getting image feature...</span>';
             let image_feature = await callPythonFunction('get_milvus_feature', {
                 key: button.getAttribute('data-img_key'),
@@ -62,7 +63,6 @@ function addImageBoxEventListeners() {
                 output_fields: output_fields
             };
 
-            let resultContainer = document.querySelector(".middle-panel");
             resultContainer.innerHTML = '<span>Searching...</span>';
             let result = await callPythonFunction('search', args).catch(error => {
                 console.error('Error fetching search results:', error);
@@ -290,8 +290,6 @@ function sorting_handler(event, input_id, entities){
         const text_value = document.getElementById(input_id).value;
         const filter_name = input_id.replace('sort_', '');
         result_list = [];
-        result_final =[];
-        currentResult = [];
 
         switch (filter_name){
             case 'video_id':{
@@ -345,29 +343,68 @@ function sorting_handler(event, input_id, entities){
             }
         };
         
-        result_final = Object.values(result_list);
-        currentResult = [...Object.values(result_list)];
+        currentDisplay = [];
+        currentDisplay = [...Object.values(result_list)];
         currentLoadIndex = 0;
         resultContainer.innerHTML ='';
-        loadImageFromS3(resultContainer,result_final,'aic24', 'ap-southeast-2');
+        loadImageFromS3(resultContainer,currentDisplay,'aic24', 'ap-southeast-2');
     };
 }
 
 document.getElementById('sort_video_id').addEventListener('keydown', function(event){
-    sorting_handler(event, 'sort_video_id',currentResult);
+    sorting_handler(event, 'sort_video_id',currentDisplay);
 });
 document.getElementById('sort_frame_id').addEventListener('keydown', function(event){
-    sorting_handler(event, 'sort_frame_id',currentResult);
+    sorting_handler(event, 'sort_frame_id',currentDisplay);
 });
 document.getElementById('sort_time_order').addEventListener('keydown', function(event){
-    sorting_handler(event, 'sort_time_order',currentResult);
+    sorting_handler(event, 'sort_time_order',currentDisplay);
 });
 document.getElementById('sort_frame_order').addEventListener('keydown', function(event){
-    sorting_handler(event, 'sort_frame_order',currentResult);
+    sorting_handler(event, 'sort_frame_order',currentDisplay);
 });
 document.getElementById('sort_answer_key').addEventListener('keydown', function(event){
-    sorting_handler(event, 'sort_answer_key',currentResult);
+    sorting_handler(event, 'sort_answer_key',currentDisplay);
 });
 document.getElementById('sort_publish_date').addEventListener('keydown', function(event){
-    sorting_handler(event, 'sort_publish_date',currentResult);
+    sorting_handler(event, 'sort_publish_date',currentDisplay);
+});
+
+//Revert Searching
+document.getElementById("revert_searching").addEventListener('mouseover', function(event){
+    const obj1 = document.getElementById("btn_1");
+    obj1.style.display = 'block';
+    obj1.style.left = event.pageX + 'px';
+    obj1.style.top = event.pageY + 'px';
+});
+document.getElementById("revert_searching").addEventListener('mouseout', function(){
+    let obj1 = document.getElementById("btn_1");
+    obj1.style.display = 'none';
+});
+document.getElementById("revert_searching").addEventListener('click', function(){
+    let container = document.querySelector('.middle-panel');
+    currentResult = [];
+    currentDisplay = [...currentDataset];
+    currentLoadIndex = 0;
+    container.innerHTML = '';
+    loadImageFromS3(container, currentDisplay, 'aic24', 'ap-southeast-2');
+});
+
+//Revert Sorting
+document.getElementById("revert_sorting").addEventListener('mouseover', function(event){
+    const obj = document.getElementById("btn_2");
+    obj.style.display = 'block';
+    obj.style.left = event.pageX + 'px';
+    obj.style.top = event.pageY + 'px';
+});
+document.getElementById("revert_sorting").addEventListener('mouseout', function(){
+    let obj = document.getElementById("btn_2");
+    obj.style.display = 'none';
+});
+document.getElementById("revert_sorting").addEventListener('click', function(){
+    let container = document.querySelector('.middle-panel');
+    currentDisplay = [...currentResult];
+    currentLoadIndex = 0;
+    container.innerHTML = '';
+    loadImageFromS3(container, currentDisplay, 'aic24', 'ap-southeast-2');
 });

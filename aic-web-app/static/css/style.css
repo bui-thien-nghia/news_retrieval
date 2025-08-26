@@ -30,11 +30,11 @@ body {
 .top-panel {
     width: 100vw;
     display: grid;
-    grid-template-columns: 20% 65% 15%;
+    grid-template-columns: 20% 3% 3% 59% 15%;
     font-size: 15px;
     font-weight: bold;
 
-    .color-settings, .slider, .show-recheck{
+    .color-settings, .slider, .show-recheck, .revert{
         font-size: 1.5em;
         cursor: pointer;
         display: flex;
@@ -368,3 +368,13 @@ input, textarea {
         }
     }
 }
+.hidden_name {
+        display: none;
+        position: absolute;
+        background-color: white;
+        border-color: #040505;
+        border-radius: 3px;
+        color: black;
+        font-size: 0.8rem;
+        padding: 3px;
+    }
