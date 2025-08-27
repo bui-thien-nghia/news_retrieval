@@ -16,6 +16,8 @@ tokenizer = get_tokenizer('ViT-H-14')
 translator_name = 'VietAI/envit5-translation'
 translate_tokenizer = AutoTokenizer.from_pretrained(translator_name)
 translate_model = AutoModelForSeq2SeqLM.from_pretrained(translator_name)
+translate_model.eval()
+translate_model.to(device)
 
 uri = 'https://in03-cbdb10d1d199984.serverless.aws-eu-central-1.cloud.zilliz.com'
 token ='6305ff67695e59bf211ca717cb68f74f7367ccfd56195824ba6aad7c07f5924cc6c9da8aadec4354aedc193a997225494903a9d7'
@@ -66,7 +68,7 @@ def prepare_query(query: str, lang: str):
         text_feature = model.encode_text(text)
         text_feature = F.normalize(text_feature, dim=-1)
 
-    text_feature = text_feature.squeeze().tolist()
+    text_feature = text_feature.cpu().squeeze().tolist()
 
     return text_feature
 

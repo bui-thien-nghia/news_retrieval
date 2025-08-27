@@ -2,6 +2,8 @@
 const loadBatchSize = 100;
 const numTags = 7;
 const output_fields = ['img_key', 'video_id', 'frame_id', 'time_order', 'frame_order', 'answer_key', 'youtube_link', 'publish_date']
+const bucket = "aic2025"
+const region = "ap-southeast-2"
 var isLoadingBatch = false;
 var currentLoadIndex = 0;
 var currentDataset = [];
@@ -78,7 +80,7 @@ function addImageBoxEventListeners() {
                 return;
             }
             resultContainer.innerHTML = ''; // Clear previous content
-            loadImageFromS3(resultContainer, currentDisplay, 'aic24', 'ap-southeast-2');
+            loadImageFromS3(resultContainer, currentDisplay, bucket, region);
         });
     }
 }
@@ -176,14 +178,14 @@ document.querySelector('.middle-panel').addEventListener('scroll', function() {
     const scrollTop = container.scrollTop;
     const clientHeight = container.clientHeight;
     if (scrollTop + clientHeight >= scrollHeight - 100 && currentLoadIndex < currentResult.length && !isLoadingBatch) {
-        loadImageFromS3(container, currentDisplay, 'aic24', 'ap-southeast-2');
+        loadImageFromS3(container, currentDisplay, bucket, region);
     }
 });
 
-// Pre-load images (currently pre-load last year's dataset)
+// Pre-load images (currently pre-load this year's dataset batch no 1)
 document.addEventListener('DOMContentLoaded', async () => {
     args = {
-        file_name: 'dataset-aic24-no-feature.pt'
+        file_name: 'dataset-aic2025-no-feature-b1.pt'
     };
     const resultContainer = document.querySelector(".middle-panel");
     resultContainer.innerHTML = '<span>Loading dataset...</span>';
@@ -202,7 +204,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         return;
     }
     resultContainer.innerHTML = ''; // Clear previous content
-    loadImageFromS3(resultContainer, currentDisplay, 'aic24', 'ap-southeast-2');
+    loadImageFromS3(resultContainer, currentDisplay, bucket, region);
 });
 
 // Search mode change handler
@@ -275,7 +277,7 @@ document.getElementById("search_button").addEventListener("click", async () => {
         return;
     }
     resultContainer.innerHTML = ''; // Clear previous content
-    loadImageFromS3(resultContainer, currentDisplay, 'aic24', 'ap-southeast-2');
+    loadImageFromS3(resultContainer, currentDisplay, bucket, region);
 });
 
 //Adjust column number
@@ -347,7 +349,7 @@ function sorting_handler(event, input_id, entities){
         currentDisplay = [...Object.values(result_list)];
         currentLoadIndex = 0;
         resultContainer.innerHTML ='';
-        loadImageFromS3(resultContainer,currentDisplay,'aic24', 'ap-southeast-2');
+        loadImageFromS3(resultContainer, currentDisplay, bucket, region);
     };
 }
 
@@ -387,7 +389,7 @@ document.getElementById("revert_searching").addEventListener('click', function()
     currentDisplay = [...currentDataset];
     currentLoadIndex = 0;
     container.innerHTML = '';
-    loadImageFromS3(container, currentDisplay, 'aic24', 'ap-southeast-2');
+    loadImageFromS3(resultContainer, currentDisplay, bucket, region);
 });
 
 //Revert Sorting
@@ -403,8 +405,12 @@ document.getElementById("revert_sorting").addEventListener('mouseout', function(
 });
 document.getElementById("revert_sorting").addEventListener('click', function(){
     let container = document.querySelector('.middle-panel');
-    currentDisplay = [...currentResult];
+    if (currentResult.length === 0) {
+        currentDisplay = [...currentResult];
+    } else {
+        currentDisplay = [...currentDataset];
+    }
     currentLoadIndex = 0;
     container.innerHTML = '';
-    loadImageFromS3(container, currentDisplay, 'aic24', 'ap-southeast-2');
+    loadImageFromS3(resultContainer, currentDisplay, bucket, region);
 });
