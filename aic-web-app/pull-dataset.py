@@ -34,7 +34,9 @@ if __name__ == '__main__':
     response = s3.get_object(Bucket=bucket_name, Key=key)
     buffer = BytesIO(response['Body'].read())
     dataset = torch.load(buffer)
-    print(f'Saving dataset with name: {file_name}')
-    torch.save(dataset, file_name)
+
+    new_file_name = sys.argv[3] if len(sys.argv) > 3 else file_name
+    print(f'Saving dataset with name: {new_file_name}')
+    torch.save(dataset, new_file_name)
     print('Done!')
     sys.exit(0)

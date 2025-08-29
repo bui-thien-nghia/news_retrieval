@@ -2,8 +2,8 @@
 const loadBatchSize = 100;
 const numTags = 7;
 const output_fields = ['img_key', 'video_id', 'frame_id', 'time_order', 'frame_order', 'answer_key', 'youtube_link', 'publish_date']
-const bucket = "aic2025"
 const region = "ap-southeast-2"
+var bucket = "aic2025"
 var isLoadingBatch = false;
 var currentLoadIndex = 0;
 var currentDataset = [];
@@ -24,6 +24,30 @@ async function callPythonFunction(f_name, args) {
     }
     const data = await response.json();
     return data;
+}
+
+async function preloadDataset(filename) {
+    bucket = filename // Make sure the filename is THE SAME AS bucket's name
+    args = {
+        file_name: `${filename}.pt`
+    };
+    console.log(`Changed to ${args.file_name}`)
+    const resultContainer = document.querySelector(".middle-panel");
+    resultContainer.innerHTML = '<span>Loading dataset...</span>';
+    const result = await callPythonFunction('get_dataset_from_local', args).catch(error => {
+        console.error('Error fetching all entities:', error);
+        return {};
+    });
+    currentDataset = [...Object.values(result)];
+    
+    currentDisplay = [...currentDataset];
+    currentLoadIndex = 0; // Reset preload index
+    if (currentDataset.length === 0) {
+        resultContainer.innerHTML = '<span>Nothing to load</span>';
+        return;
+    }
+    resultContainer.innerHTML = ''; // Clear previous content
+    loadImageFromS3(resultContainer, currentDisplay, bucket, region);
 }
 
 // Metadata tag switch
@@ -182,29 +206,12 @@ document.querySelector('.middle-panel').addEventListener('scroll', function() {
     }
 });
 
-// Pre-load images (currently pre-load this year's dataset batch no 1)
-document.addEventListener('DOMContentLoaded', async () => {
-    args = {
-        file_name: 'dataset-aic2025-no-feature-b1.pt'
-    };
-    const resultContainer = document.querySelector(".middle-panel");
-    resultContainer.innerHTML = '<span>Loading dataset...</span>';
-    if (currentDataset.length == 0) {
-        const result = await callPythonFunction('get_dataset_from_local', args).catch(error => {
-            console.error('Error fetching all entities:', error);
-            return {};
-        });
-        currentDataset = [...Object.values(result)];
-    }
-
-    currentDisplay = [...currentDataset];
-    currentLoadIndex = 0; // Reset preload index
-    if (currentDataset.length === 0) {
-        resultContainer.innerHTML = '<span>Nothing to load</span>';
-        return;
-    }
-    resultContainer.innerHTML = ''; // Clear previous content
-    loadImageFromS3(resultContainer, currentDisplay, bucket, region);
+//Pre-load images everytime collection name is changed
+document.addEventListener('DOMContentLoaded', () => {
+    document.getElementById("collection_name").addEventListener('change', (event) => {
+        preloadDataset(event.target.value)
+    });
+    preloadDataset(bucket);
 });
 
 // Search mode change handler
@@ -389,7 +396,7 @@ document.getElementById("revert_searching").addEventListener('click', function()
     currentDisplay = [...currentDataset];
     currentLoadIndex = 0;
     container.innerHTML = '';
-    loadImageFromS3(resultContainer, currentDisplay, bucket, region);
+    loadImageFromS3(container, currentDisplay, bucket, region);
 });
 
 //Revert Sorting
@@ -405,12 +412,12 @@ document.getElementById("revert_sorting").addEventListener('mouseout', function(
 });
 document.getElementById("revert_sorting").addEventListener('click', function(){
     let container = document.querySelector('.middle-panel');
-    if (currentResult.length === 0) {
+    if (currentResult.length > 0) {
         currentDisplay = [...currentResult];
     } else {
         currentDisplay = [...currentDataset];
     }
     currentLoadIndex = 0;
     container.innerHTML = '';
-    loadImageFromS3(resultContainer, currentDisplay, bucket, region);
+    loadImageFromS3(container, currentDisplay, bucket, region);
 });

@@ -22,16 +22,13 @@ def handle_request():
 
         f_name = data.get('f_name')
         if f_name == 'search':
-            print(f"Search called")
             result = search(**args)
             return jsonify(result)
         elif f_name == 'get_dataset_from_local':
-            print(f"Get dataset from S3 called")
             result = get_dataset_from_local(**args)
             print(f"Result: {len(result)}")
             return jsonify(result)
         elif f_name == 'get_milvus_feature':
-            print(f"Get Milvus feature called")
             result = get_milvus_feature(**args)
             return jsonify(result)
         else:
