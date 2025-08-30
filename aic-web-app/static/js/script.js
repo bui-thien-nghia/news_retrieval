@@ -27,19 +27,9 @@ async function callPythonFunction(f_name, args) {
 }
 
 async function preloadDataset(filename) {
-    bucket = filename // Make sure the filename is THE SAME AS bucket's name
-    args = {
-        file_name: `${filename}.pt`
-    };
-    console.log(`Changed to ${args.file_name}`)
     const resultContainer = document.querySelector(".middle-panel");
-    resultContainer.innerHTML = '<span>Loading dataset...</span>';
-    const result = await callPythonFunction('get_dataset_from_local', args).catch(error => {
-        console.error('Error fetching all entities:', error);
-        return {};
-    });
+    const result = listDatasets[filename]
     currentDataset = [...Object.values(result)];
-    
     currentDisplay = [...currentDataset];
     currentLoadIndex = 0; // Reset preload index
     if (currentDataset.length === 0) {
@@ -201,7 +191,7 @@ document.querySelector('.middle-panel').addEventListener('scroll', function() {
     const scrollHeight = container.scrollHeight;
     const scrollTop = container.scrollTop;
     const clientHeight = container.clientHeight;
-    if (scrollTop + clientHeight >= scrollHeight - 100 && currentLoadIndex < currentResult.length && !isLoadingBatch) {
+    if (scrollTop + clientHeight >= scrollHeight - 150 && currentLoadIndex < currentDisplay.length && !isLoadingBatch) { // Allocate 150px for buffer
         loadImageFromS3(container, currentDisplay, bucket, region);
     }
 });
@@ -209,7 +199,8 @@ document.querySelector('.middle-panel').addEventListener('scroll', function() {
 //Pre-load images everytime collection name is changed
 document.addEventListener('DOMContentLoaded', () => {
     document.getElementById("collection_name").addEventListener('change', (event) => {
-        preloadDataset(event.target.value)
+        bucket = event.target.value; // Make sure the filename is THE SAME AS bucket's name
+        preloadDataset(bucket);
     });
     preloadDataset(bucket);
 });
@@ -396,6 +387,7 @@ document.getElementById("revert_searching").addEventListener('click', function()
     currentDisplay = [...currentDataset];
     currentLoadIndex = 0;
     container.innerHTML = '';
+    console.log(currentDisplay.length)
     loadImageFromS3(container, currentDisplay, bucket, region);
 });
 

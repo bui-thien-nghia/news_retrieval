@@ -5,8 +5,12 @@ app = Flask(__name__)
 app.debug = False # Set to False in production
 
 @app.route('/')
-def home():
-    return render_template(f'index.html')
+def index():
+    list_datasets = {
+        'aic24': get_dataset_from_local('aic24.pt'),
+        'aic2025': get_dataset_from_local('aic2025.pt')
+    }
+    return render_template(f'index.html', list_datasets=list_datasets)
 
 @app.errorhandler(500)
 def internal_error():
