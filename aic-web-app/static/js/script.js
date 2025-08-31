@@ -1,5 +1,5 @@
 // Setup
-const loadBatchSize = 100;
+const loadBatchSize = 200;
 const numTags = 7;
 const output_fields = ['img_key', 'video_id', 'frame_id', 'time_order', 'frame_order', 'answer_key', 'youtube_link', 'publish_date']
 const region = "ap-southeast-2"
@@ -27,9 +27,18 @@ async function callPythonFunction(f_name, args) {
 }
 
 async function preloadDataset(filename) {
+    args = {
+        file_name: `${filename}.pt`
+    };
+    console.log(`Changed to ${args.file_name}`)
     const resultContainer = document.querySelector(".middle-panel");
-    const result = listDatasets[filename]
+    resultContainer.innerHTML = '<span>Loading dataset...</span>';
+    const result = await callPythonFunction('get_dataset_from_local', args).catch(error => {
+        console.error('Error fetching all entities:', error);
+        return {};
+    });
     currentDataset = [...Object.values(result)];
+    
     currentDisplay = [...currentDataset];
     currentLoadIndex = 0; // Reset preload index
     if (currentDataset.length === 0) {
