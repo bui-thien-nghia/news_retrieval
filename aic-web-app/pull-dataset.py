@@ -1,4 +1,5 @@
 import os
+import json
 import sys
 import torch
 from io import BytesIO
@@ -19,7 +20,8 @@ if __name__ == '__main__':
         sys.exit(1)
 
     file_name = key.split('/')[-1]
-    if os.path.exists(file_name):
+    new_file_name = f'datasets\\{sys.argv[3] if len(sys.argv) > 3 else file_name}'
+    if os.path.exists(new_file_name):
         print('Dataset already exists on your directory.')
         sys.exit(0)
 
@@ -35,7 +37,6 @@ if __name__ == '__main__':
     buffer = BytesIO(response['Body'].read())
     dataset = torch.load(buffer)
 
-    new_file_name = sys.argv[3] if len(sys.argv) > 3 else file_name
     print(f'Saving dataset with name: {new_file_name}')
     torch.save(dataset, new_file_name)
     print('Done!')

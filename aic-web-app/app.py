@@ -1,12 +1,18 @@
+from glob import glob
 from utils.py_utils import *
 from flask import Flask, request, jsonify, render_template
 
 app = Flask(__name__)
 app.debug = False # Set to False in production
 
+list_datasets = {}
+all_dataset_file_names = glob('datasets\\*.pt')
+for filename in all_dataset_file_names:
+    list_datasets[filename.split('\\')[-1][:-3]] = get_dataset_from_local(filename)
+
 @app.route('/')
 def index():
-    return render_template('index.html')
+    return render_template('index.html', listDatasets = list_datasets)
 
 @app.errorhandler(500)
 def internal_error():

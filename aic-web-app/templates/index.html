@@ -115,14 +115,14 @@
                                 <div class="param-enter">
                                     <label for="radius">
                                         <span>Radius</span>
-                                        <input id="radius" type="number">
+                                        <input id="radius" type="number" value=0>
                                     </label>
                                 </div>
 
                                 <div class="param-enter">
                                     <label for="range_filter">
                                         <span>Range filter</span>
-                                        <input id="range_filter" type="number">
+                                        <input id="range_filter" type="number" value=1>
                                     </label>
                                 </div>
                             </div>
@@ -130,21 +130,21 @@
                                 <div class="param-enter">
                                     <label for="group_by_field">
                                         <span>Group by field</span>
-                                        <input id="group_by_field" type="text">
+                                        <input id="group_by_field" type="text" value="video_id">
                                     </label>
                                 </div>
 
                                 <div class="param-enter">
                                     <label for="group_size">
                                         <span>Group size</span>
-                                        <input id="group_size" type="number">
+                                        <input id="group_size" type="number" value=1>
                                     </label>
                                 </div>
 
                                 <div class="param-enter">
                                 <label for="strict_group_size">
                                     <span>Strict group size</span>
-                                    <input id="strict_group_size" type="checkbox">
+                                    <input id="strict_group_size" type="checkbox" checked>
                                 </label>
                                 </div>
                             </div>
@@ -271,6 +271,10 @@
             </section>
             <div class='submit-button button'>SUBMIT</div>
         </div>
+
+        <script>
+            listDatasets = {{ listDatasets | tojson }}
+        </script>
         <script src="{{ url_for('static', filename='js/script.js') }}"></script>
     </body>
 </html>

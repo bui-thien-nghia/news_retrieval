@@ -26,19 +26,22 @@ async function callPythonFunction(f_name, args) {
     return data;
 }
 
+async function getDataset(file_name) {
+    const response = await fetch(file_name)
+}
+
 async function preloadDataset(filename) {
-    args = {
-        file_name: `${filename}.pt`
-    };
-    console.log(`Changed to ${args.file_name}`)
     const resultContainer = document.querySelector(".middle-panel");
     resultContainer.innerHTML = '<span>Loading dataset...</span>';
-    const result = await callPythonFunction('get_dataset_from_local', args).catch(error => {
-        console.error('Error fetching all entities:', error);
-        return {};
-    });
+    // args = {
+    //     file_name: `${filename}.pt`
+    // };
+    // const result = await callPythonFunction('get_dataset_from_local', args).catch(error => {
+    //     console.error('Error fetching all entities:', error);
+    //     return {};
+    // });
+    const result = listDatasets[filename]
     currentDataset = [...Object.values(result)];
-    
     currentDisplay = [...currentDataset];
     currentLoadIndex = 0; // Reset preload index
     if (currentDataset.length === 0) {
