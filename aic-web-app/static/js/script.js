@@ -3,6 +3,18 @@ const loadBatchSize = 200;
 const numTags = 7;
 const output_fields = ['img_key', 'video_id', 'frame_id', 'time_order', 'frame_order', 'answer_key', 'youtube_link', 'publish_date']
 const region = "ap-southeast-2"
+const popupImageDiv = `
+    <div class="popup-container">
+        <div class="box popup">
+            <div class="image-layer">
+                <!-- <img class="image-for-popup" src="" alt="image broken:<"> -->
+                <video class="video-for-popup" src="" controls>
+            </div>
+            <!-- <div class="tag-layer"></div> -->
+            <span class="image-close">ⴵ</span>
+        </div>
+    </div>
+`
 var bucket = "aic2025"
 var isLoadingBatch = false;
 var currentLoadIndex = 0;
@@ -26,8 +38,9 @@ async function callPythonFunction(f_name, args) {
     return data;
 }
 
-async function getDataset(file_name) {
-    const response = await fetch(file_name)
+function resetContainer(container) {
+    currentLoadIndex = 0;
+    container.innerHTML = popupImageDiv;
 }
 
 async function preloadDataset(filename) {
@@ -43,12 +56,11 @@ async function preloadDataset(filename) {
     const result = listDatasets[filename]
     currentDataset = [...Object.values(result)];
     currentDisplay = [...currentDataset];
-    currentLoadIndex = 0; // Reset preload index
     if (currentDataset.length === 0) {
         resultContainer.innerHTML = '<span>Nothing to load</span>';
         return;
     }
-    resultContainer.innerHTML = ''; // Clear previous content
+    resetContainer(resultContainer)
     loadImageFromS3(resultContainer, currentDisplay, bucket, region);
 }
 
@@ -56,6 +68,8 @@ async function preloadDataset(filename) {
 function addImageBoxEventListeners() {
     const tags = document.querySelectorAll('.tag');
     const cont_buttons = document.querySelectorAll('.cont-search');
+    const image_layers = document.querySelectorAll('.image-for-display')
+    const expand_buttons = document.querySelectorAll('.expand')
     // Tag switch
     for (let i = currentLoadIndex * numTags; i < tags.length; i++) {
         let tag = tags[i];
@@ -68,8 +82,8 @@ function addImageBoxEventListeners() {
         tag.style.display = tagSwitch.checked ? 'block' : 'none';
     }
 
-    //Continue searching button
     for (let i = currentLoadIndex; i < cont_buttons.length; i++) {
+        //Continue searching button
         let button = cont_buttons[i];
         button.addEventListener('click', async () => {
             let resultContainer = document.querySelector(".middle-panel");
@@ -100,15 +114,33 @@ function addImageBoxEventListeners() {
             
             currentResult = [...Object.values(result)];
             currentDisplay = [...Object.values(result)];
-            currentLoadIndex = 0; // Reset preload index
             if (currentResult.length === 0) {
                 resultContainer.innerHTML = '<span>No results found</span>';
                 return;
             }
-            resultContainer.innerHTML = ''; // Clear previous content
+            resetContainer(resultContainer)
             loadImageFromS3(resultContainer, currentDisplay, bucket, region);
         });
+
+        // Click on image to see more clearly (later will be changed to in-video position display)
+        let expand = expand_buttons[i];
+        expand.addEventListener('click', () => {
+            let popupImageContainer = document.querySelector('.popup-container');
+            let popupClose = document.querySelector('.image-close');
+            // For image
+            // let popupImage = document.querySelector('.image-for-popup');
+            // popupImage.src = expand.getAttribute('data-img-src');
+            // For video
+            let popupVideo = document.querySelector('.video-for-popup')
+            popupVideo.src = expand.getAttribute('data-vid-src')
+
+            popupImageContainer.style.display = 'block'
+            popupClose.addEventListener('click', () => {
+                popupImageContainer.style.display = 'none';
+            });
+        });
     }
+
 }
 
 function loadImageFromS3(container, listEntities, bucket, region) {
@@ -126,7 +158,7 @@ function loadImageFromS3(container, listEntities, bucket, region) {
                 resultItem.className = 'box';
                 resultItem.innerHTML = `
                     <div class="image-layer">
-                        <img src="https://${bucket}.s3.${region}.amazonaws.com/${entity.img_key}" alt="Image broken:<" loading="lazy">
+                        <img class="image-for-display" src="https://${bucket}.s3.${region}.amazonaws.com/${entity.img_key}" alt="Image broken:<" loading="lazy">
                     </div>
                     <div class="tag-layer">
                         <div class="tag tag-video_id" id="tag_video_id">${entity.video_id}</div>
@@ -139,6 +171,7 @@ function loadImageFromS3(container, listEntities, bucket, region) {
                     </div>
                     <div class="search-layer">
                         <div class="button cont-search" data-img_key=${entity.img_key}>🔍</div>
+                        <div class="button expand" data-img-src="https://${bucket}.s3.${region}.amazonaws.com/${entity.img_key}" data-vid-src="https://${bucket}.s3.${region}.amazonaws.com/${entity.vid_key}#t=${parseFloat(entity.time_order) / 1000}">&#x26F6;</div>
                     </div>
                 `
                 container.appendChild(resultItem);
@@ -281,12 +314,11 @@ document.getElementById("search_button").addEventListener("click", async () => {
     
     currentResult = [...Object.values(result)];
     currentDisplay = [...Object.values(result)];
-    currentLoadIndex = 0; // Reset preload index
     if (currentResult.length === 0) {
         resultContainer.innerHTML = '<span>No results found</span>';
         return;
     }
-    resultContainer.innerHTML = ''; // Clear previous content
+    resetContainer(resultContainer)
     loadImageFromS3(resultContainer, currentDisplay, bucket, region);
 });
 
@@ -397,9 +429,7 @@ document.getElementById("revert_searching").addEventListener('click', function()
     let container = document.querySelector('.middle-panel');
     currentResult = [];
     currentDisplay = [...currentDataset];
-    currentLoadIndex = 0;
-    container.innerHTML = '';
-    console.log(currentDisplay.length)
+    resetContainer(container)
     loadImageFromS3(container, currentDisplay, bucket, region);
 });
 
@@ -421,7 +451,6 @@ document.getElementById("revert_sorting").addEventListener('click', function(){
     } else {
         currentDisplay = [...currentDataset];
     }
-    currentLoadIndex = 0;
-    container.innerHTML = '';
+    resetContainer(container)
     loadImageFromS3(container, currentDisplay, bucket, region);
 });
