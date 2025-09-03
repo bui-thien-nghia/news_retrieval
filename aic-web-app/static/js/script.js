@@ -7,10 +7,13 @@ const popupImageDiv = `
     <div class="popup-container">
         <div class="box popup">
             <div class="image-layer">
-                <!-- <img class="image-for-popup" src="" alt="image broken:<"> -->
                 <video class="video-for-popup" src="" controls>
             </div>
-            <!-- <div class="tag-layer"></div> -->
+            <div class="time-spec">
+                <div class="current-time">Current time: </div>
+                <div class="current-frame">Current frame: </div>
+            </div>
+            <div class="tag-layer"></div>
             <span class="image-close">ⴵ</span>
         </div>
     </div>
@@ -68,7 +71,6 @@ async function preloadDataset(filename) {
 function addImageBoxEventListeners() {
     const tags = document.querySelectorAll('.tag');
     const cont_buttons = document.querySelectorAll('.cont-search');
-    const image_layers = document.querySelectorAll('.image-for-display')
     const expand_buttons = document.querySelectorAll('.expand')
     // Tag switch
     for (let i = currentLoadIndex * numTags; i < tags.length; i++) {
@@ -129,13 +131,29 @@ function addImageBoxEventListeners() {
             let popupClose = document.querySelector('.image-close');
             // For image
             // let popupImage = document.querySelector('.image-for-popup');
-            // popupImage.src = expand.getAttribute('data-img-src');
+            // popupImage.src = expand.getAttribute('data-img_src');
             // For video
             let popupVideo = document.querySelector('.video-for-popup')
-            popupVideo.src = expand.getAttribute('data-vid-src')
+            popupVideo.src = expand.getAttribute('data-vid_src')
+            popupVideo.addEventListener('timeupdate', () => {
+                document.querySelector('.current-time').innerHTML = `Current time: ${parseInt(popupVideo.currentTime * 1000)} (ms)`
+                document.querySelector('.current-frame').innerHTML = `Current frame: ${parseInt(popupVideo.currentTime * parseFloat(expand.getAttribute('data-fps')))}`
+            });
+
+            let tagLayer = popupImageContainer.querySelector('.popup').querySelector('.tag-layer')
+            tagLayer.innerHTML = `
+                <div class="tag tag-video_id" id="tag_video_id">${expand.getAttribute('data-video_id')}</div>
+                <div class="tag tag-frame_id" id="tag_frame_id">${expand.getAttribute('data-frame_id')}</div>
+                <div class="tag tag-time_order" id="tag_time_order">${expand.getAttribute('data-time_order')}</div>
+                <div class="tag tag-frame_order" id="tag_frame_order">${expand.getAttribute('data-frame_order')}</div>
+                <div class="tag tag-answer_key" id="tag_answer_key">${expand.getAttribute('data-answer_key')}</div>
+                <div class="tag tag-youtube_link" id="tag_youtube_link"><a target="_blank" href=${expand.getAttribute('data-youtube_link')}>YouTube link</a></div>
+                <div class="tag tag-publish_date" id="tag_publish_date">${expand.getAttribute('data-publish_date')}</div>
+            `;
 
             popupImageContainer.style.display = 'block'
             popupClose.addEventListener('click', () => {
+                popupVideo.pause()
                 popupImageContainer.style.display = 'none';
             });
         });
@@ -166,12 +184,24 @@ function loadImageFromS3(container, listEntities, bucket, region) {
                         <div class="tag tag-time_order" id="tag_time_order">${entity.time_order}</div>
                         <div class="tag tag-frame_order" id="tag_frame_order">${entity.frame_order}</div>
                         <div class="tag tag-answer_key" id="tag_answer_key">${entity.answer_key}</div>
-                        <div class="tag tag-youtube_link" id="tag_youtube_link"><a target="_blank" href=${entity.youtube_link}>Click here</a></div>
+                        <div class="tag tag-youtube_link" id="tag_youtube_link"><a target="_blank" href=${entity.youtube_link}>YouTube link</a></div>
                         <div class="tag tag-publish_date" id="tag_publish_date">${entity.publish_date}</div>
                     </div>
+
+                    <!-- FPS needs to be added to dataset currently in use -->
                     <div class="search-layer">
                         <div class="button cont-search" data-img_key=${entity.img_key}>🔍</div>
-                        <div class="button expand" data-img-src="https://${bucket}.s3.${region}.amazonaws.com/${entity.img_key}" data-vid-src="https://${bucket}.s3.${region}.amazonaws.com/${entity.vid_key}#t=${parseFloat(entity.time_order) / 1000}">&#x26F6;</div>
+                        <div class="button expand" 
+                            data-img_src="https://${bucket}.s3.${region}.amazonaws.com/${entity.img_key}" 
+                            data-vid_src="https://${bucket}.s3.${region}.amazonaws.com/${entity.vid_key}#t=${parseFloat(entity.time_order) / 1000}" 
+                            data-video_id=${entity.video_id} 
+                            data-frame_id=${entity.frame_id} 
+                            data-time_order=${entity.time_order} 
+                            data-frame_order=${entity.frame_order} 
+                            data-fps=${entity.fps} 
+                            data-answer_key=${entity.answer_key} 
+                            data-youtube_link=${entity.youtube_link} 
+                            data-publish_date=${entity.publish_date} >&#x26F6;</div>
                     </div>
                 `
                 container.appendChild(resultItem);
