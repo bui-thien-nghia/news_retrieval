@@ -8,11 +8,12 @@ app.debug = False # Set to False in production
 list_datasets = {}
 all_dataset_file_names = glob('datasets\\*.pt')
 for filename in all_dataset_file_names:
+    print(f'Found {filename.split('\\')[-1][:-3]}')
     list_datasets[filename.split('\\')[-1][:-3]] = get_dataset_from_local(filename)
 
 @app.route('/')
 def index():
-    return render_template('index.html', listDatasets = list_datasets)
+    return render_template('index.html', listDatasets=list_datasets)
 
 @app.errorhandler(500)
 def internal_error():
@@ -44,4 +45,4 @@ def handle_request():
         return jsonify({'error': str(e)}), 500
     
 if __name__ == '__main__':
-    app.run(host="0.0.0.0")
+    app.run()

@@ -1,7 +1,7 @@
 // Setup
 const loadBatchSize = 200;
 const numTags = 7;
-const output_fields = ['img_key', 'video_id', 'frame_id', 'time_order', 'frame_order', 'answer_key', 'youtube_link', 'publish_date']
+const output_fields = ['img_link', 'vid_link', 'video_id', 'frame_id', 'time_order', 'frame_order', 'answer_key', 'youtube_link', 'publish_date']
 const region = "ap-southeast-2"
 const popupImageDiv = `
     <div class="popup-container">
@@ -18,7 +18,7 @@ const popupImageDiv = `
         </div>
     </div>
 `
-var bucket = "aic2025"
+var bucket = "aic_2025"
 var isLoadingBatch = false;
 var currentLoadIndex = 0;
 var currentDataset = [];
@@ -71,7 +71,7 @@ async function preloadDataset(filename) {
 function addImageBoxEventListeners() {
     const tags = document.querySelectorAll('.tag');
     const cont_buttons = document.querySelectorAll('.cont-search');
-    const expand_buttons = document.querySelectorAll('.expand')
+    const expand_buttons = document.querySelectorAll('.expand');
     // Tag switch
     for (let i = currentLoadIndex * numTags; i < tags.length; i++) {
         let tag = tags[i];
@@ -91,7 +91,7 @@ function addImageBoxEventListeners() {
             let resultContainer = document.querySelector(".middle-panel");
             resultContainer.innerHTML = '<span>Getting image feature...</span>';
             let image_feature = await callPythonFunction('get_milvus_feature', {
-                key: button.getAttribute('data-img_key'),
+                link: button.getAttribute('data-img_src'),
                 collection_name: document.getElementById("collection_name").value
             }).catch(error => {
                 console.error(`Error fetching feature: ${error}`);
@@ -176,7 +176,7 @@ function loadImageFromS3(container, listEntities, bucket, region) {
                 resultItem.className = 'box';
                 resultItem.innerHTML = `
                     <div class="image-layer">
-                        <img class="image-for-display" src="https://${bucket}.s3.${region}.amazonaws.com/${entity.img_key}" alt="Image broken:<" loading="lazy">
+                        <img class="image-for-display" src="${entity.img_link}" alt="Image broken:<" loading="lazy">
                     </div>
                     <div class="tag-layer">
                         <div class="tag tag-video_id" id="tag_video_id">${entity.video_id}</div>
@@ -190,10 +190,10 @@ function loadImageFromS3(container, listEntities, bucket, region) {
 
                     <!-- FPS needs to be added to dataset currently in use -->
                     <div class="search-layer">
-                        <div class="button cont-search" data-img_key=${entity.img_key}>🔍</div>
+                        <div class="button cont-search" data-img_src=${entity.img_link}>🔍</div>
                         <div class="button expand" 
-                            data-img_src="https://${bucket}.s3.${region}.amazonaws.com/${entity.img_key}" 
-                            data-vid_src="https://${bucket}.s3.${region}.amazonaws.com/${entity.vid_key}#t=${parseFloat(entity.time_order) / 1000}" 
+                            data-img_src="${entity.img_link}"
+                            data-vid_src="${entity.vid_link}#t=${parseFloat(entity.time_order) / 1000}" 
                             data-video_id=${entity.video_id} 
                             data-frame_id=${entity.frame_id} 
                             data-time_order=${entity.time_order} 
@@ -274,8 +274,7 @@ document.querySelector('.middle-panel').addEventListener('scroll', function() {
 //Pre-load images everytime collection name is changed
 document.addEventListener('DOMContentLoaded', () => {
     document.getElementById("collection_name").addEventListener('change', (event) => {
-        bucket = event.target.value; // Make sure the filename is THE SAME AS bucket's name
-        preloadDataset(bucket);
+        preloadDataset(event.target.value);
     });
     preloadDataset(bucket);
 });

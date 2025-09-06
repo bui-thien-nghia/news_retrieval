@@ -73,11 +73,11 @@ def prepare_query(query: str, lang: str):
     return text_feature
 
 
-def get_milvus_feature(key: str, collection_name: str):
+def get_milvus_feature(link: str, collection_name: str):
     collection = Collection(collection_name)
     iterator = collection.query_iterator(
         batch_size=1,
-        expr=f'img_key == \"{key}\"',
+        expr=f'img_link == \"{link}\"',
         output_fields=["vector"]
     )
 
