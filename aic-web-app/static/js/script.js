@@ -349,6 +349,11 @@ document.getElementById("search_button").addEventListener("click", async () => {
     }
     resetContainer(resultContainer)
     loadImageFromS3(resultContainer, currentDisplay, bucket, region);
+
+    const temp_array = [];
+    temp_array.push(args.query, currentResult);
+    searchHistory.unshift(temp_array);
+    LichSuTimKiem();
 });
 
 //Adjust column number
@@ -458,7 +463,7 @@ document.getElementById("revert_searching").addEventListener('click', function()
     let container = document.querySelector('.middle-panel');
     currentResult = [];
     currentDisplay = [...currentDataset];
-    resetContainer(container)
+    resetContainer(container);
     loadImageFromS3(container, currentDisplay, bucket, region);
 });
 
@@ -480,6 +485,28 @@ document.getElementById("revert_sorting").addEventListener('click', function(){
     } else {
         currentDisplay = [...currentDataset];
     }
-    resetContainer(container)
+    resetContainer(container);
     loadImageFromS3(container, currentDisplay, bucket, region);
 });
+
+//Search Hítory
+function LichSuTimKiem(){
+    try {
+        const search_history = document.querySelector(".search-history-area");
+        const temp_container = document.querySelector(".middle-panel");
+        search_history.innerHTML = '';
+        searchHistory.forEach(box => {
+            let div = document.createElement('div');
+            div.className = 'history-box';
+            div.textContent = box[0].length < 35 ? box[0] : box[0].slice(0,35) + '...';
+            div.addEventListener('click', () => {
+                resetContainer(temp_container);
+                loadImageFromS3(temp_container,box[1], bucket, region);
+            });
+            search_history.appendChild(div);
+        });
+    } catch (error) {
+        alert("error", error);
+    };
+};
+    

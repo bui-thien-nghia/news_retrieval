@@ -244,6 +244,7 @@ body {
 .left-panel {
     display: grid;
     grid-template-rows: 2fr 1fr;
+    position: relative;
 
     select {
         border: 2px solid #ccc;
@@ -311,6 +312,31 @@ body {
     
                 input[type="checkbox"] {
                     transform: scale(1.5);
+                }
+            }
+
+            .search-history-area {
+                    position: absolute;
+                    margin: 8px;
+                    padding: 8px;
+                    height: 250px;
+                    width: 90%;
+                    color: white;
+                    font-size: 0.8rem;
+                    border: 1px solid white;
+                    overflow-y: scroll;
+
+                .history-box {
+                    display: flex;
+                    height: max-content;
+                    width: 85%;
+                    padding: 5px;
+                    background-color: rgba(117, 117, 117, 0.4);
+                    border: 1px solid white;
+                    border-radius: 5px;
+                    margin: 5%;
+                    cursor: pointer;
+                    pointer-events: auto;
                 }
             }
         }
