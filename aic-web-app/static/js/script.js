@@ -1,8 +1,7 @@
 // Setup
 const loadBatchSize = 200;
 const numTags = 7;
-const output_fields = ['img_link', 'vid_link', 'video_id', 'frame_id', 'time_order', 'frame_order', 'answer_key', 'youtube_link', 'publish_date']
-const region = "ap-southeast-2"
+const output_fields = ['img_link', 'vid_link', 'video_id', 'frame_id', 'time_order', 'frame_order', 'fps', 'answer_key', 'youtube_link', 'publish_date']
 const popupImageDiv = `
     <div class="popup-container">
         <div class="box popup">
@@ -17,8 +16,10 @@ const popupImageDiv = `
             <span class="image-close">ⴵ</span>
         </div>
     </div>
-`
-var bucket = "aic_2025"
+`;
+const default_dataset = 'aic_2025';
+const username = "team075";
+const password = "khRrKkZW2U";
 var isLoadingBatch = false;
 var currentLoadIndex = 0;
 var currentDataset = [];
@@ -41,6 +42,39 @@ async function callPythonFunction(f_name, args) {
     return data;
 }
 
+async function getId(username, password) {
+    const sessionId = await fetch('https://eventretrieval.oj.io.vn/api/v2/login', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            username: username,
+            password: password
+        })
+    }).json().sessionId;
+
+    const evaluationId = await fetch('https://eventretrieval.oj.io.vn/api/v2/client/evaluation/list', {
+        method: 'GET',
+        body: JSON.stringify({
+            session: sessionId
+        })
+    }).json().id;
+
+    return {sessionId, evaluationId};
+}
+
+async function submitResult(submission, evaluationId) {
+    const response = fetch(`https://eventretrieval.oj.io.vn/api/v2/submit/${evaluationId}`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({submission})
+    });
+    console.log(response)
+}
+
 function resetContainer(container) {
     currentLoadIndex = 0;
     container.innerHTML = popupImageDiv;
@@ -49,13 +83,6 @@ function resetContainer(container) {
 async function preloadDataset(filename) {
     const resultContainer = document.querySelector(".middle-panel");
     resultContainer.innerHTML = '<span>Loading dataset...</span>';
-    // args = {
-    //     file_name: `${filename}.pt`
-    // };
-    // const result = await callPythonFunction('get_dataset_from_local', args).catch(error => {
-    //     console.error('Error fetching all entities:', error);
-    //     return {};
-    // });
     const result = listDatasets[filename]
     currentDataset = [...Object.values(result)];
     currentDisplay = [...currentDataset];
@@ -64,14 +91,15 @@ async function preloadDataset(filename) {
         return;
     }
     resetContainer(resultContainer)
-    loadImageFromS3(resultContainer, currentDisplay, bucket, region);
+    loadImage(resultContainer, currentDisplay);
 }
 
-// Metadata tag switch
+// Image boxes' buttons
 function addImageBoxEventListeners() {
     const tags = document.querySelectorAll('.tag');
     const cont_buttons = document.querySelectorAll('.cont-search');
     const expand_buttons = document.querySelectorAll('.expand');
+    const recheck_buttons = document.querySelectorAll('.send-recheck');
     // Tag switch
     for (let i = currentLoadIndex * numTags; i < tags.length; i++) {
         let tag = tags[i];
@@ -121,7 +149,7 @@ function addImageBoxEventListeners() {
                 return;
             }
             resetContainer(resultContainer)
-            loadImageFromS3(resultContainer, currentDisplay, bucket, region);
+            loadImage(resultContainer, currentDisplay);
         });
 
         // Click on image to see more clearly (later will be changed to in-video position display)
@@ -157,13 +185,28 @@ function addImageBoxEventListeners() {
                 popupImageContainer.style.display = 'none';
             });
         });
+
+        // Send to recheck panek
+        let recheck = recheck_buttons[i];
+        recheck.addEventListener('click', () => {
+            let parentBoxClone = recheck.parentElement.parentElement.cloneNode(true);
+            let parentLayer = parentBoxClone.querySelector('.search-layer')
+            parentLayer.removeChild(parentLayer.querySelector('.send-recheck'))
+            let recheckContainer = document.getElementById('recheck');
+            let recheckRemove = document.createElement('div');
+            recheckRemove.textContent = '❌';
+            recheckRemove.setAttribute('class', 'button remove-recheck')
+
+            recheckRemove.addEventListener('click', () => {parentBoxClone.remove()});
+            parentLayer.appendChild(recheckRemove)
+            recheckContainer.appendChild(parentBoxClone);
+        }) 
     }
 
 }
 
-function loadImageFromS3(container, listEntities, bucket, region) {
+function loadImage(container, listEntities) {
     if (isLoadingBatch) {
-        console.log('Already loading a batch, skipping this call.');
         return; // Prevent multiple concurrent loads
     }
 
@@ -191,6 +234,7 @@ function loadImageFromS3(container, listEntities, bucket, region) {
                     <!-- FPS needs to be added to dataset currently in use -->
                     <div class="search-layer">
                         <div class="button cont-search" data-img_src=${entity.img_link}>🔍</div>
+                        <div class="button send-recheck">➡️</div>
                         <div class="button expand" 
                             data-img_src="${entity.img_link}"
                             data-vid_src="${entity.vid_link}#t=${parseFloat(entity.time_order) / 1000}" 
@@ -201,7 +245,8 @@ function loadImageFromS3(container, listEntities, bucket, region) {
                             data-fps=${entity.fps} 
                             data-answer_key=${entity.answer_key} 
                             data-youtube_link=${entity.youtube_link} 
-                            data-publish_date=${entity.publish_date} >&#x26F6;</div>
+                            data-publish_date=${entity.publish_date} >&#x26F6;
+                        </div>
                     </div>
                 `
                 container.appendChild(resultItem);
@@ -249,14 +294,12 @@ document.querySelector('.show-recheck').addEventListener('click', () => {
             "l m r"
         `;
         recheckShown = true;
-        console.log("Recheck shown");
     } else {
         body.style.gridTemplateAreas =`
             "h h h"
             "l m m"
         `;
         recheckShown = false;
-        console.log("Recheck hidden");
     }
 });
 
@@ -267,7 +310,7 @@ document.querySelector('.middle-panel').addEventListener('scroll', function() {
     const scrollTop = container.scrollTop;
     const clientHeight = container.clientHeight;
     if (scrollTop + clientHeight >= scrollHeight - 150 && currentLoadIndex < currentDisplay.length && !isLoadingBatch) { // Allocate 150px for buffer
-        loadImageFromS3(container, currentDisplay, bucket, region);
+        loadImage(container, currentDisplay);
     }
 });
 
@@ -276,7 +319,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById("collection_name").addEventListener('change', (event) => {
         preloadDataset(event.target.value);
     });
-    preloadDataset(bucket);
+    preloadDataset(default_dataset);
 });
 
 // Search mode change handler
@@ -348,7 +391,7 @@ document.getElementById("search_button").addEventListener("click", async () => {
         return;
     }
     resetContainer(resultContainer)
-    loadImageFromS3(resultContainer, currentDisplay, bucket, region);
+    loadImage(resultContainer, currentDisplay);
 
     const temp_array = [];
     temp_array.push(args.query, currentResult);
@@ -405,7 +448,7 @@ function sorting_handler(event, input_id, entities){
                 });
                 break;
             }
-            case 'youtube_linl':{
+            case 'youtube_link':{
                 entities.forEach(entity =>{
                     if (text_value == entity.youtube_link)
                         result_list.push(entity);
@@ -425,7 +468,7 @@ function sorting_handler(event, input_id, entities){
         currentDisplay = [...Object.values(result_list)];
         currentLoadIndex = 0;
         resultContainer.innerHTML ='';
-        loadImageFromS3(resultContainer, currentDisplay, bucket, region);
+        loadImage(resultContainer, currentDisplay);
     };
 }
 
@@ -464,7 +507,7 @@ document.getElementById("revert_searching").addEventListener('click', function()
     currentResult = [];
     currentDisplay = [...currentDataset];
     resetContainer(container);
-    loadImageFromS3(container, currentDisplay, bucket, region);
+    loadImage(container, currentDisplay);
 });
 
 //Revert Sorting
@@ -486,7 +529,7 @@ document.getElementById("revert_sorting").addEventListener('click', function(){
         currentDisplay = [...currentDataset];
     }
     resetContainer(container);
-    loadImageFromS3(container, currentDisplay, bucket, region);
+    loadImage(container, currentDisplay);
 });
 
 //Search Hítory
@@ -501,7 +544,7 @@ function LichSuTimKiem(){
             div.textContent = box[0].length < 35 ? box[0] : box[0].slice(0,35) + '...';
             div.addEventListener('click', () => {
                 resetContainer(temp_container);
-                loadImageFromS3(temp_container,box[1], bucket, region);
+                loadImage(temp_container, box[1]);
             });
             search_history.appendChild(div);
         });
@@ -509,4 +552,67 @@ function LichSuTimKiem(){
         alert("error", error);
     };
 };
-    
+
+// Submit mode handler
+modeSelection = document.querySelector('.mode-selection')
+modeSelection.onchange = () => {
+    const qaAnswer = document.getElementById('qa_answer');
+    const val = modeSelection.value;
+    if (val === "qa") {
+        qaAnswer.style.display = 'block';
+    } else {
+        qaAnswer.style.display = 'none';
+    }
+};
+
+// Submission handler
+submitButton = document.querySelector('.submit-button')
+submitButton.onclick = () => {
+    const chosen = document.getElementById('recheck').querySelectorAll('.box .search-layer .expand')
+    const ans = document.getElementById('qa_answer').value
+    const mode = modeSelection.value;
+    if (chosen.length < 1) {
+        return;
+    }
+
+    submitButton.textContent = 'SUBMITTING...'
+    const idKey = getId(username, password)
+    let submission = {};
+    if (mode === 'kis') {
+        submission = {
+            session: idKey.sessionId,
+            answerSets: [{
+                answers: [{
+                    mediaItemName: chosen[0].getAttribute('data-video_id'),
+                    start: chosen[0].getAttribute('data-time_order'),
+                    end: chosen[0].getAttribute('data-time_order'),
+                }]
+            }]
+        };
+    } else if (mode === 'qa') {
+        submission = {
+            session: idKey.sessionId,
+            answerSets: [{
+                answers: [{
+                    text: `QA-${ans}-${chosen[0].getAttribute('data-video_id')}-${chosen[0].getAttribute('data-time_order')}`
+                }]
+            }]
+        };
+    } else if (mode === 'trake') {
+        let text = `TR-${chosen[0].getAttribute('data-video_id')}`;
+        for (let i = 0; i < chosen.length; i++) {
+            text += '-' + chosen[i].getAttribute('data-frame_order');
+        }
+        submission = {
+            session: idKey.sessionId,
+            answerSets: [{
+                answers: [{
+                    text: text
+                }]
+            }]
+        };
+    }
+    console.log(submission);
+    submitResult(submission, idKey.evaluationId)
+    submitButton.textContent = 'SUBMIT'
+}
