@@ -88,7 +88,7 @@
         
     } */
 
-    .cont-search, .expand, .send-recheck, .remove-recheck {
+    .cont-search, .expand, .send-recheck, .remove-recheck, .up-recheck, .down-recheck {
         padding: 2px;
         border: none;
         border-radius: 14px;
@@ -406,6 +406,13 @@ body {
                 right: 5px;
                 cursor: pointer;
             }
+            .popup-recheck {
+                position: absolute;
+                z-index: 2;
+                top: 5px;
+                left: 5px;
+                cursor: pointer;
+            }
         }
     }
 }
@@ -463,6 +470,7 @@ body {
 }
 
 .button {
+    cursor: pointer;
     background-color: #f45b69;
     border: 3px solid #040505;
     color: #040505;

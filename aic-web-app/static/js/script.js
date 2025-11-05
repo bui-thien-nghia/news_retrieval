@@ -14,12 +14,16 @@ const popupImageDiv = `
             </div>
             <div class="tag-layer"></div>
             <span class="image-close">ⴵ</span>
+            <span class="popup-recheck">➡️</span>
         </div>
     </div>
 `;
 const default_dataset = 'aic_2025';
+
+// Hard-coded because no other teams would use our program lolol
 const username = "team075";
 const password = "khRrKkZW2U";
+
 var isLoadingBatch = false;
 var currentLoadIndex = 0;
 var currentDataset = [];
@@ -40,44 +44,6 @@ async function callPythonFunction(f_name, args) {
     }
     const data = await response.json();
     return data;
-}
-
-async function getId(username, password) {
-    const sessionId = await fetch('https://eventretrieval.oj.io.vn/api/v2/login', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-            username: username,
-            password: password
-        })
-    }).json().sessionId;
-
-    const evaluationId = await fetch('https://eventretrieval.oj.io.vn/api/v2/client/evaluation/list', {
-        method: 'GET',
-        body: JSON.stringify({
-            session: sessionId
-        })
-    }).json().id;
-
-    return {sessionId, evaluationId};
-}
-
-async function submitResult(submission, evaluationId) {
-    const response = fetch(`https://eventretrieval.oj.io.vn/api/v2/submit/${evaluationId}`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({submission})
-    });
-    console.log(response)
-}
-
-function resetContainer(container) {
-    currentLoadIndex = 0;
-    container.innerHTML = popupImageDiv;
 }
 
 async function preloadDataset(filename) {
@@ -155,20 +121,17 @@ function addImageBoxEventListeners() {
         // Click on image to see more clearly (later will be changed to in-video position display)
         let expand = expand_buttons[i];
         expand.addEventListener('click', () => {
-            let popupImageContainer = document.querySelector('.popup-container');
+            let popupContainer = document.querySelector('.popup-container');
             let popupClose = document.querySelector('.image-close');
             // For image
             // let popupImage = document.querySelector('.image-for-popup');
             // popupImage.src = expand.getAttribute('data-img_src');
             // For video
-            let popupVideo = document.querySelector('.video-for-popup')
-            popupVideo.src = expand.getAttribute('data-vid_src')
-            popupVideo.addEventListener('timeupdate', () => {
-                document.querySelector('.current-time').innerHTML = `Current time: ${parseInt(popupVideo.currentTime * 1000)} (ms)`
-                document.querySelector('.current-frame').innerHTML = `Current frame: ${parseInt(popupVideo.currentTime * parseFloat(expand.getAttribute('data-fps')))}`
-            });
-
-            let tagLayer = popupImageContainer.querySelector('.popup').querySelector('.tag-layer')
+            let popupVideo = document.querySelector('.video-for-popup');
+            let curTime = null;
+            let curFrame = null;
+            let popupRecheck = document.querySelector('.popup-recheck');
+            let tagLayer = popupContainer.querySelector('.popup').querySelector('.tag-layer');
             tagLayer.innerHTML = `
                 <div class="tag tag-video_id" id="tag_video_id">${expand.getAttribute('data-video_id')}</div>
                 <div class="tag tag-frame_id" id="tag_frame_id">${expand.getAttribute('data-frame_id')}</div>
@@ -179,26 +142,97 @@ function addImageBoxEventListeners() {
                 <div class="tag tag-publish_date" id="tag_publish_date">${expand.getAttribute('data-publish_date')}</div>
             `;
 
-            popupImageContainer.style.display = 'block'
+            popupVideo.src = expand.getAttribute('data-vid_src');
+            popupVideo.addEventListener('timeupdate', () => {
+                curTime = parseInt(popupVideo.currentTime * 1000)
+                curFrame = parseInt(popupVideo.currentTime * parseFloat(expand.getAttribute('data-fps')));
+                document.querySelector('.current-time').innerHTML = `Current time: ${curTime} (ms)`;
+                document.querySelector('.current-frame').innerHTML = `Current frame: ${curFrame}`;
+                tagLayer.querySelector('.tag-time_order').textContent = curTime;
+                tagLayer.querySelector('.tag-frame_order').textContent = curFrame;
+            });
+
+            popupRecheck.addEventListener('click', () => {
+                let parentBoxClone = expand.parentElement.parentElement.cloneNode(true);
+                parentBoxClone.querySelector('.tag-layer .tag-time_order').textContent = curTime;
+                parentBoxClone.querySelector('.tag-layer .tag-frame_order').textContent = curFrame;
+                parentBoxClone.querySelector('.search-layer .expand').getAttribute('data-time_order').value = curTime;
+                parentBoxClone.querySelector('.search-layer .expand').getAttribute('data-frame_order').value = curFrame;
+
+                let parentLayer = parentBoxClone.querySelector('.search-layer');
+                let recheckContainer = document.getElementById('recheck');
+
+                let recheckRemove = document.createElement('div');
+                recheckRemove.textContent = '❌';
+                recheckRemove.setAttribute('class', 'button remove-recheck');
+                recheckRemove.addEventListener('click', () => {parentBoxClone.remove()});
+
+                let recheckMoveUp = document.createElement('div');
+                recheckMoveUp.textContent = '⬆️';
+                recheckMoveUp.setAttribute('class', 'button up-recheck');
+                recheckMoveUp.addEventListener('click', () => {
+                    if (parentBoxClone.previousSibling !== null) {
+                        recheckContainer.insertBefore(parentBoxClone, parentBoxClone.previousSibling)
+                }});
+
+                let recheckMoveDown = document.createElement('div');
+                recheckMoveDown.textContent = '⬇️';
+                recheckMoveDown.setAttribute('class', 'button down-recheck');
+                recheckMoveDown.addEventListener('click', () => {
+                    if (parentBoxClone.nextSibling !== null) {
+                        recheckContainer.insertBefore(parentBoxClone.nextSibling, parentBoxClone)
+                }});
+
+                parentLayer.removeChild(parentLayer.querySelector('.send-recheck'));
+                parentLayer.appendChild(recheckMoveUp);
+                parentLayer.appendChild(recheckMoveDown);
+                parentLayer.appendChild(recheckRemove);
+                recheckContainer.appendChild(parentBoxClone);
+                parentBoxClone.style.display = 'block';
+            });
+
+            popupContainer.style.display = 'block';
             popupClose.addEventListener('click', () => {
-                popupVideo.pause()
-                popupImageContainer.style.display = 'none';
+                let popupRecheckClone = popupRecheck.cloneNode(true);
+                popupRecheck.parentNode.replaceChild(popupRecheckClone, popupRecheck);
+
+                popupVideo.pause();
+                popupContainer.style.display = 'none';
             });
         });
 
-        // Send to recheck panek
+        // Send to recheck panel
         let recheck = recheck_buttons[i];
         recheck.addEventListener('click', () => {
             let parentBoxClone = recheck.parentElement.parentElement.cloneNode(true);
-            let parentLayer = parentBoxClone.querySelector('.search-layer')
-            parentLayer.removeChild(parentLayer.querySelector('.send-recheck'))
+            let parentLayer = parentBoxClone.querySelector('.search-layer');
             let recheckContainer = document.getElementById('recheck');
+
             let recheckRemove = document.createElement('div');
             recheckRemove.textContent = '❌';
-            recheckRemove.setAttribute('class', 'button remove-recheck')
-
+            recheckRemove.setAttribute('class', 'button remove-recheck');
             recheckRemove.addEventListener('click', () => {parentBoxClone.remove()});
-            parentLayer.appendChild(recheckRemove)
+
+            let recheckMoveUp = document.createElement('div');
+            recheckMoveUp.textContent = '⬆️';
+            recheckMoveUp.setAttribute('class', 'button up-recheck');
+            recheckMoveUp.addEventListener('click', () => {
+                if (parentBoxClone.previousSibling !== null) {
+                    recheckContainer.insertBefore(parentBoxClone, parentBoxClone.previousSibling)
+            }});
+
+            let recheckMoveDown = document.createElement('div');
+            recheckMoveDown.textContent = '⬇️';
+            recheckMoveDown.setAttribute('class', 'button down-recheck');
+            recheckMoveDown.addEventListener('click', () => {
+                if (parentBoxClone.nextSibling !== null) {
+                    recheckContainer.insertBefore(parentBoxClone.nextSibling, parentBoxClone)
+            }});
+
+            parentLayer.removeChild(parentLayer.querySelector('.send-recheck'));
+            parentLayer.appendChild(recheckMoveUp);
+            parentLayer.appendChild(recheckMoveDown);
+            parentLayer.appendChild(recheckRemove);
             recheckContainer.appendChild(parentBoxClone);
         }) 
     }
@@ -231,7 +265,6 @@ function loadImage(container, listEntities) {
                         <div class="tag tag-publish_date" id="tag_publish_date">${entity.publish_date}</div>
                     </div>
 
-                    <!-- FPS needs to be added to dataset currently in use -->
                     <div class="search-layer">
                         <div class="button cont-search" data-img_src=${entity.img_link}>🔍</div>
                         <div class="button send-recheck">➡️</div>
@@ -410,7 +443,7 @@ function sorting_handler(event, input_id, entities){
         const resultContainer = document.querySelector(".middle-panel");
         const text_value = document.getElementById(input_id).value;
         const filter_name = input_id.replace('sort_', '');
-        result_list = [];
+        let result_list = [];
 
         switch (filter_name){
             case 'video_id':{
@@ -466,8 +499,7 @@ function sorting_handler(event, input_id, entities){
         
         currentDisplay = [];
         currentDisplay = [...Object.values(result_list)];
-        currentLoadIndex = 0;
-        resultContainer.innerHTML ='';
+        resetContainer(resultContainer);
         loadImage(resultContainer, currentDisplay);
     };
 }
@@ -532,7 +564,7 @@ document.getElementById("revert_sorting").addEventListener('click', function(){
     loadImage(container, currentDisplay);
 });
 
-//Search Hítory
+//Search History
 function LichSuTimKiem(){
     try {
         const search_history = document.querySelector(".search-history-area");
@@ -566,8 +598,72 @@ modeSelection.onchange = () => {
 };
 
 // Submission handler
+async function getId(username, password) {
+    try {
+        let response = await fetch('https://eventretrieval.oj.io.vn/api/v2/login', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                username: username,
+                password: password
+            })
+        });
+        let data = await response.json();
+
+        if (!response.ok) {
+            throw new Error(`Login failed, response with status ${response.status}`);
+        }
+
+        const sessionId = data.sessionId;
+
+        response = await fetch(`https://eventretrieval.oj.io.vn/api/v2/client/evaluation/list?session=${sessionId}`, { method: 'GET' });
+        data = await response.json();
+
+        if (!response.ok) {
+            throw new Error(`Login failed, response with status ${response.status}`);
+        }
+
+        const activeEvaluation = data.find(item => item.type === 'SYNCHRONOUS' && item.status === 'ACTIVE');
+        if (!activeEvaluation) {
+            throw new Error('No active evaluation found');
+        }
+        const evaluationId = activeEvaluation.id;
+
+        return {sessionId, evaluationId};
+    } catch (e){
+        console.log(`Error while fetching IDs: ${e}`);
+        return {};
+    }
+}
+
+async function submitResult(submission, sessionId, evaluationId) {
+    try {
+        let response = await fetch(`https://eventretrieval.oj.io.vn/api/v2/submit/${evaluationId}?session=${sessionId}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(submission)
+        });
+        let data = await response.json();
+        console.log(data);
+        if (!response.ok) {
+            throw new Error(`Submission failed, response with status: ${response.status}`)
+        }
+    } catch (e){
+        console.log(`Error while submitting result: ${e}`);
+    }
+}
+
+function resetContainer(container) {
+    currentLoadIndex = 0;
+    container.innerHTML = popupImageDiv;
+}
+
 submitButton = document.querySelector('.submit-button')
-submitButton.onclick = () => {
+submitButton.onclick = async () => {
     const chosen = document.getElementById('recheck').querySelectorAll('.box .search-layer .expand')
     const ans = document.getElementById('qa_answer').value
     const mode = modeSelection.value;
@@ -576,22 +672,20 @@ submitButton.onclick = () => {
     }
 
     submitButton.textContent = 'SUBMITTING...'
-    const idKey = getId(username, password)
+    const idKey = await getId(username, password);
     let submission = {};
     if (mode === 'kis') {
         submission = {
-            session: idKey.sessionId,
             answerSets: [{
                 answers: [{
                     mediaItemName: chosen[0].getAttribute('data-video_id'),
-                    start: chosen[0].getAttribute('data-time_order'),
-                    end: chosen[0].getAttribute('data-time_order'),
+                    start: parseInt(chosen[0].getAttribute('data-time_order')),
+                    end: parseInt(chosen[0].getAttribute('data-time_order')),
                 }]
             }]
         };
     } else if (mode === 'qa') {
         submission = {
-            session: idKey.sessionId,
             answerSets: [{
                 answers: [{
                     text: `QA-${ans}-${chosen[0].getAttribute('data-video_id')}-${chosen[0].getAttribute('data-time_order')}`
@@ -604,7 +698,6 @@ submitButton.onclick = () => {
             text += '-' + chosen[i].getAttribute('data-frame_order');
         }
         submission = {
-            session: idKey.sessionId,
             answerSets: [{
                 answers: [{
                     text: text
@@ -612,7 +705,6 @@ submitButton.onclick = () => {
             }]
         };
     }
-    console.log(submission);
-    submitResult(submission, idKey.evaluationId)
+    await submitResult(submission, idKey.sessionId, idKey.evaluationId);
     submitButton.textContent = 'SUBMIT'
 }
