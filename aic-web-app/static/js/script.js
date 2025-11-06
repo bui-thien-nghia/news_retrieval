@@ -24,6 +24,7 @@ const default_dataset = 'aic_2025';
 const username = "team075";
 const password = "khRrKkZW2U";
 
+var ws;
 var isLoadingBatch = false;
 var currentLoadIndex = 0;
 var currentDataset = [];
@@ -31,6 +32,7 @@ var currentResult = [];
 var currentDisplay = [];
 var searchHistory = [];
 
+// Call function from Flask back-end
 async function callPythonFunction(f_name, args) {
     const response = await fetch('/api/app', {
         method: 'POST',
@@ -46,6 +48,7 @@ async function callPythonFunction(f_name, args) {
     return data;
 }
 
+// Load available .pt dataset files for preview & sortings
 async function preloadDataset(filename) {
     const resultContainer = document.querySelector(".middle-panel");
     resultContainer.innerHTML = '<span>Loading dataset...</span>';
@@ -60,14 +63,196 @@ async function preloadDataset(filename) {
     loadImage(resultContainer, currentDisplay);
 }
 
-// Image boxes' buttons
-function addImageBoxEventListeners() {
-    const tags = document.querySelectorAll('.tag');
-    const cont_buttons = document.querySelectorAll('.cont-search');
-    const expand_buttons = document.querySelectorAll('.expand');
-    const recheck_buttons = document.querySelectorAll('.send-recheck');
-    // Tag switch
-    for (let i = currentLoadIndex * numTags; i < tags.length; i++) {
+// Reset container for every new load request
+function resetContainer(container) {
+    currentLoadIndex = 0;
+    container.innerHTML = popupImageDiv;
+}
+
+// Web socket for recheck synchronization
+function initWebSocket() {
+    ws = new WebSocket(`ws://localhost:5000/ws`);
+
+    ws.onopen = () => {console.log('Web socket opened');};
+
+    ws.onmessage = (e) => {
+        const data = JSON.parse(e.data);
+        if (data.type === 'recheck_update') {
+            let recheckContainer = document.getElementById('recheck');
+            recheckContainer.innerHTML = '';
+            data.data.forEach(recheckImgLink => {
+                const expand = document.querySelector(`[data-img_src="${recheckImgLink}"]`);
+                const recheckBox = expand.parentElement.parentElement.cloneNode(true);
+                recheckContainer.appendChild(constructRecheckBox(recheckBox));
+            });
+        }
+    };
+
+    ws.onerror = (e) => {console.error('Web socket error', e);};
+
+    ws.onclose = () => {
+        console.log('Connection failed, attempting to reconnect...')
+        setTimeout(initWebSocket, 1000);
+    }
+}
+document.addEventListener('DOMContentLoaded', () => initWebSocket())
+
+// Construct recheck box
+function constructRecheckBox(recheckBox) {
+    const parentLayer = recheckBox.querySelector('.search-layer');
+    const recheckRemove = document.createElement('div');
+    const recheckMoveUp = document.createElement('div');
+    const recheckMoveDown = document.createElement('div');
+    const tags = recheckBox.querySelectorAll('.tag');
+    const cont_button = parentLayer.querySelector('.cont-search');
+    const expand_button = parentLayer.querySelector('.expand');
+    const recheck_button = parentLayer.querySelector('.send-recheck');
+    
+
+    recheckMoveUp.textContent = '⬆️';
+    recheckMoveUp.setAttribute('class', 'button up-recheck');
+    recheckMoveUp.addEventListener('click', () => {
+        if (recheckBox.previousSibling !== null) {
+            recheckImgLinkPrev = recheckBox.previousSibling.querySelector('.search-layer .expand').getAttribute('data-img_src');
+            recheckImgLink = recheckBox.querySelector('.search-layer .expand').getAttribute('data-img_src');
+            ws.send(JSON.stringify({
+                data: {
+                    box1: recheckImgLinkPrev,
+                    box2: recheckImgLink
+                },
+                type: 'recheck_swap'
+            }));
+    }});
+
+    recheckMoveDown.textContent = '⬇️';
+    recheckMoveDown.setAttribute('class', 'button down-recheck');
+    recheckMoveDown.addEventListener('click', () => {
+        if (recheckBox.nextSibling !== null) {
+            recheckImgLinkNext = recheckBox.nextSibling.querySelector('.search-layer .expand').getAttribute('data-img_src');
+            recheckImgLink = recheckBox.querySelector('.search-layer .expand').getAttribute('data-img_src');
+            ws.send(JSON.stringify({
+                data: {
+                    box1: recheckImgLinkNext,
+                    box2: recheckImgLink
+                },
+                type: 'recheck_swap'
+            }));
+    }});
+
+    recheckRemove.textContent = '❌';
+    recheckRemove.setAttribute('class', 'button remove-recheck');
+    recheckRemove.addEventListener('click', () => {
+        recheckImgLink = recheckBox.querySelector('.search-layer .expand').getAttribute('data-img_src');
+        ws.send(JSON.stringify({
+            data: recheckImgLink,
+            type: 'recheck_remove'
+        }));
+    });
+
+    addListeners(tags, cont_button, expand_button, recheck_button);
+    parentLayer.removeChild(recheck_button);
+    parentLayer.appendChild(recheckMoveUp);
+    parentLayer.appendChild(recheckMoveDown);
+    parentLayer.appendChild(recheckRemove);
+
+    return recheckBox;
+}
+
+// Event listener for expand pop up button
+function addExpandTrigger(expand) {
+    let popupContainer = document.querySelector('.popup-container');
+    let popupClose = document.querySelector('.image-close');
+    let popupVideo = document.querySelector('.video-for-popup');
+    let curTime = null;
+    let curFrame = null;
+    let popupRecheck = document.querySelector('.popup-recheck');
+    let tagLayer = popupContainer.querySelector('.popup').querySelector('.tag-layer');
+    tagLayer.innerHTML = `
+        <div class="tag tag-video_id" id="tag_video_id">${expand.getAttribute('data-video_id')}</div>
+        <div class="tag tag-frame_id" id="tag_frame_id">${expand.getAttribute('data-frame_id')}</div>
+        <div class="tag tag-time_order" id="tag_time_order">${expand.getAttribute('data-time_order')}</div>
+        <div class="tag tag-frame_order" id="tag_frame_order">${expand.getAttribute('data-frame_order')}</div>
+        <div class="tag tag-answer_key" id="tag_answer_key">${expand.getAttribute('data-answer_key')}</div>
+        <div class="tag tag-youtube_link" id="tag_youtube_link"><a target="_blank" href=${expand.getAttribute('data-youtube_link')}>YouTube link</a></div>
+        <div class="tag tag-publish_date" id="tag_publish_date">${expand.getAttribute('data-publish_date')}</div>
+    `;
+
+    popupVideo.src = expand.getAttribute('data-vid_src');
+    popupVideo.addEventListener('timeupdate', () => {
+        curTime = parseInt(popupVideo.currentTime * 1000)
+        curFrame = parseInt(popupVideo.currentTime * parseFloat(expand.getAttribute('data-fps')));
+        document.querySelector('.current-time').innerHTML = `Current time: ${curTime} (ms)`;
+        document.querySelector('.current-frame').innerHTML = `Current frame: ${curFrame}`;
+        tagLayer.querySelector('.tag-time_order').textContent = curTime;
+        tagLayer.querySelector('.tag-frame_order').textContent = curFrame;
+    });
+
+    popupRecheck.addEventListener('click', () => {
+        let recheckBox = expand.parentElement.parentElement.cloneNode(true);
+        recheckBox.querySelector('.tag-layer .tag-time_order').textContent = curTime;
+        recheckBox.querySelector('.tag-layer .tag-frame_order').textContent = curFrame;
+        recheckBox.querySelector('.search-layer .expand').getAttribute('data-time_order').value = curTime;
+        recheckBox.querySelector('.search-layer .expand').getAttribute('data-frame_order').value = curFrame;
+
+        recheckImgLink = recheckBox.querySelector('.search-layer .expand').getAttribute('data-img_src');
+        recheckBox.style.display = 'block';
+        ws.send(JSON.stringify({
+            data: recheckImgLink,
+            type: 'recheck_add'
+        }));
+    });
+
+    popupContainer.style.display = 'block';
+    popupClose.addEventListener('click', () => {
+        let popupRecheckClone = popupRecheck.cloneNode(true);
+        popupRecheck.parentNode.replaceChild(popupRecheckClone, popupRecheck);
+
+        popupVideo.pause();
+        popupContainer.style.display = 'none';
+    });
+}
+
+// Add continuous search trigger
+async function addContinuousSearchTrigger(button) {
+    let resultContainer = document.querySelector(".middle-panel");
+    resultContainer.innerHTML = '<span>Getting image feature...</span>';
+    let image_feature = await callPythonFunction('get_milvus_feature', {
+        link: button.getAttribute('data-img_src'),
+        collection_name: document.getElementById("collection_name").value
+    }).catch(error => {
+        console.error(`Error fetching feature: ${error}`);
+        return [];
+    });
+
+    let args = {
+        query: image_feature,
+        lang: document.getElementById("lang").value,
+        collection_name: document.getElementById("collection_name").value,
+        top_k: Number(document.getElementById("top_k").value),
+        ef: Number(document.getElementById("ef").value),
+        output_fields: output_fields
+    };
+
+    resultContainer.innerHTML = '<span>Searching...</span>';
+    let result = await callPythonFunction('search', args).catch(error => {
+        console.error('Error fetching search results:', error);
+        resultContainer.innerHTML = '<span>Error fetching results</span>';
+        return {};
+    });
+    
+    currentResult = [...Object.values(result)];
+    currentDisplay = [...Object.values(result)];
+    if (currentResult.length === 0) {
+        resultContainer.innerHTML = '<span>No results found</span>';
+        return;
+    }
+    resetContainer(resultContainer)
+    loadImage(resultContainer, currentDisplay);
+}
+
+// Add boxes' listeners
+function addListeners(tags, cont_button, expand_button, recheck_button) {
+    for (let i = 0; i < tags.length; i++) {
         let tag = tags[i];
         let tagSwitchId = tag.id;
         tagSwitchId = tagSwitchId.replace('tag_', '');
@@ -78,167 +263,19 @@ function addImageBoxEventListeners() {
         tag.style.display = tagSwitch.checked ? 'block' : 'none';
     }
 
-    for (let i = currentLoadIndex; i < cont_buttons.length; i++) {
-        //Continue searching button
-        let button = cont_buttons[i];
-        button.addEventListener('click', async () => {
-            let resultContainer = document.querySelector(".middle-panel");
-            resultContainer.innerHTML = '<span>Getting image feature...</span>';
-            let image_feature = await callPythonFunction('get_milvus_feature', {
-                link: button.getAttribute('data-img_src'),
-                collection_name: document.getElementById("collection_name").value
-            }).catch(error => {
-                console.error(`Error fetching feature: ${error}`);
-                return [];
-            });
-
-            let args = {
-                query: image_feature,
-                lang: document.getElementById("lang").value,
-                collection_name: document.getElementById("collection_name").value,
-                top_k: Number(document.getElementById("top_k").value),
-                ef: Number(document.getElementById("ef").value),
-                output_fields: output_fields
-            };
-
-            resultContainer.innerHTML = '<span>Searching...</span>';
-            let result = await callPythonFunction('search', args).catch(error => {
-                console.error('Error fetching search results:', error);
-                resultContainer.innerHTML = '<span>Error fetching results</span>';
-                return {};
-            });
-            
-            currentResult = [...Object.values(result)];
-            currentDisplay = [...Object.values(result)];
-            if (currentResult.length === 0) {
-                resultContainer.innerHTML = '<span>No results found</span>';
-                return;
-            }
-            resetContainer(resultContainer)
-            loadImage(resultContainer, currentDisplay);
-        });
-
-        // Click on image to see more clearly (later will be changed to in-video position display)
-        let expand = expand_buttons[i];
-        expand.addEventListener('click', () => {
-            let popupContainer = document.querySelector('.popup-container');
-            let popupClose = document.querySelector('.image-close');
-            // For image
-            // let popupImage = document.querySelector('.image-for-popup');
-            // popupImage.src = expand.getAttribute('data-img_src');
-            // For video
-            let popupVideo = document.querySelector('.video-for-popup');
-            let curTime = null;
-            let curFrame = null;
-            let popupRecheck = document.querySelector('.popup-recheck');
-            let tagLayer = popupContainer.querySelector('.popup').querySelector('.tag-layer');
-            tagLayer.innerHTML = `
-                <div class="tag tag-video_id" id="tag_video_id">${expand.getAttribute('data-video_id')}</div>
-                <div class="tag tag-frame_id" id="tag_frame_id">${expand.getAttribute('data-frame_id')}</div>
-                <div class="tag tag-time_order" id="tag_time_order">${expand.getAttribute('data-time_order')}</div>
-                <div class="tag tag-frame_order" id="tag_frame_order">${expand.getAttribute('data-frame_order')}</div>
-                <div class="tag tag-answer_key" id="tag_answer_key">${expand.getAttribute('data-answer_key')}</div>
-                <div class="tag tag-youtube_link" id="tag_youtube_link"><a target="_blank" href=${expand.getAttribute('data-youtube_link')}>YouTube link</a></div>
-                <div class="tag tag-publish_date" id="tag_publish_date">${expand.getAttribute('data-publish_date')}</div>
-            `;
-
-            popupVideo.src = expand.getAttribute('data-vid_src');
-            popupVideo.addEventListener('timeupdate', () => {
-                curTime = parseInt(popupVideo.currentTime * 1000)
-                curFrame = parseInt(popupVideo.currentTime * parseFloat(expand.getAttribute('data-fps')));
-                document.querySelector('.current-time').innerHTML = `Current time: ${curTime} (ms)`;
-                document.querySelector('.current-frame').innerHTML = `Current frame: ${curFrame}`;
-                tagLayer.querySelector('.tag-time_order').textContent = curTime;
-                tagLayer.querySelector('.tag-frame_order').textContent = curFrame;
-            });
-
-            popupRecheck.addEventListener('click', () => {
-                let parentBoxClone = expand.parentElement.parentElement.cloneNode(true);
-                parentBoxClone.querySelector('.tag-layer .tag-time_order').textContent = curTime;
-                parentBoxClone.querySelector('.tag-layer .tag-frame_order').textContent = curFrame;
-                parentBoxClone.querySelector('.search-layer .expand').getAttribute('data-time_order').value = curTime;
-                parentBoxClone.querySelector('.search-layer .expand').getAttribute('data-frame_order').value = curFrame;
-
-                let parentLayer = parentBoxClone.querySelector('.search-layer');
-                let recheckContainer = document.getElementById('recheck');
-
-                let recheckRemove = document.createElement('div');
-                recheckRemove.textContent = '❌';
-                recheckRemove.setAttribute('class', 'button remove-recheck');
-                recheckRemove.addEventListener('click', () => {parentBoxClone.remove()});
-
-                let recheckMoveUp = document.createElement('div');
-                recheckMoveUp.textContent = '⬆️';
-                recheckMoveUp.setAttribute('class', 'button up-recheck');
-                recheckMoveUp.addEventListener('click', () => {
-                    if (parentBoxClone.previousSibling !== null) {
-                        recheckContainer.insertBefore(parentBoxClone, parentBoxClone.previousSibling)
-                }});
-
-                let recheckMoveDown = document.createElement('div');
-                recheckMoveDown.textContent = '⬇️';
-                recheckMoveDown.setAttribute('class', 'button down-recheck');
-                recheckMoveDown.addEventListener('click', () => {
-                    if (parentBoxClone.nextSibling !== null) {
-                        recheckContainer.insertBefore(parentBoxClone.nextSibling, parentBoxClone)
-                }});
-
-                parentLayer.removeChild(parentLayer.querySelector('.send-recheck'));
-                parentLayer.appendChild(recheckMoveUp);
-                parentLayer.appendChild(recheckMoveDown);
-                parentLayer.appendChild(recheckRemove);
-                recheckContainer.appendChild(parentBoxClone);
-                parentBoxClone.style.display = 'block';
-            });
-
-            popupContainer.style.display = 'block';
-            popupClose.addEventListener('click', () => {
-                let popupRecheckClone = popupRecheck.cloneNode(true);
-                popupRecheck.parentNode.replaceChild(popupRecheckClone, popupRecheck);
-
-                popupVideo.pause();
-                popupContainer.style.display = 'none';
-            });
-        });
-
-        // Send to recheck panel
-        let recheck = recheck_buttons[i];
-        recheck.addEventListener('click', () => {
-            let parentBoxClone = recheck.parentElement.parentElement.cloneNode(true);
-            let parentLayer = parentBoxClone.querySelector('.search-layer');
-            let recheckContainer = document.getElementById('recheck');
-
-            let recheckRemove = document.createElement('div');
-            recheckRemove.textContent = '❌';
-            recheckRemove.setAttribute('class', 'button remove-recheck');
-            recheckRemove.addEventListener('click', () => {parentBoxClone.remove()});
-
-            let recheckMoveUp = document.createElement('div');
-            recheckMoveUp.textContent = '⬆️';
-            recheckMoveUp.setAttribute('class', 'button up-recheck');
-            recheckMoveUp.addEventListener('click', () => {
-                if (parentBoxClone.previousSibling !== null) {
-                    recheckContainer.insertBefore(parentBoxClone, parentBoxClone.previousSibling)
-            }});
-
-            let recheckMoveDown = document.createElement('div');
-            recheckMoveDown.textContent = '⬇️';
-            recheckMoveDown.setAttribute('class', 'button down-recheck');
-            recheckMoveDown.addEventListener('click', () => {
-                if (parentBoxClone.nextSibling !== null) {
-                    recheckContainer.insertBefore(parentBoxClone.nextSibling, parentBoxClone)
-            }});
-
-            parentLayer.removeChild(parentLayer.querySelector('.send-recheck'));
-            parentLayer.appendChild(recheckMoveUp);
-            parentLayer.appendChild(recheckMoveDown);
-            parentLayer.appendChild(recheckRemove);
-            recheckContainer.appendChild(parentBoxClone);
-        }) 
-    }
-
+    cont_button.addEventListener('click', async () => addContinuousSearchTrigger(cont_button));
+    expand_button.addEventListener('click', () => addExpandTrigger(expand_button));
+    recheck_button.addEventListener('click', () => {
+        let recheckBox = recheck_button.parentElement.parentElement.cloneNode(true);
+        recheckImgLink = recheckBox.querySelector('.search-layer .expand').getAttribute('data-img_src');
+        ws.send(JSON.stringify({
+            data: recheckImgLink,
+            type: 'recheck_add'
+        }));
+    }) 
 }
 
+// Load image with batches
 function loadImage(container, listEntities) {
     if (isLoadingBatch) {
         return; // Prevent multiple concurrent loads
@@ -282,14 +319,19 @@ function loadImage(container, listEntities) {
                         </div>
                     </div>
                 `
+
+                const tags = resultItem.querySelectorAll('.tag');
+                const cont_button = resultItem.querySelector('.cont-search');
+                const expand_button = resultItem.querySelector('.expand');
+                const recheck_button = resultItem.querySelector('.send-recheck');
+                addListeners(tags, cont_button, expand_button, recheck_button);
                 container.appendChild(resultItem);
             } catch (error) {
                 console.error('Error loading image:', error);
-                return; // Skip this entity if there's an error
+                return;
             }
         }
 
-        addImageBoxEventListeners();
         currentLoadIndex += loadBatchSize;
         isLoadingBatch = false;
     }, 0);
@@ -448,49 +490,49 @@ function sorting_handler(event, input_id, entities){
         switch (filter_name){
             case 'video_id':{
                 entities.forEach(entity =>{
-                    if (text_value == entity.video_id)
+                    if (text_value === entity.video_id)
                         result_list.push(entity);
                 });
                 break;
             }
             case 'frame_id':{
                 entities.forEach(entity =>{
-                    if (text_value == entity.frame_id)
+                    if (text_value === entity.frame_id)
                         result_list.push(entity);
                 });
                 break;
             }
             case 'frame_order':{
                 entities.forEach(entity =>{
-                    if (text_value == entity.frame_order)
+                    if (text_value === entity.frame_order)
                         result_list.push(entity);
                 });
                 break;
             }
             case 'time_order':{
                 entities.forEach(entity =>{
-                    if (text_value == entity.time_order)
+                    if (text_value === entity.time_order)
                         result_list.push(entity);
                 });
                 break;
             }
             case 'answer_key':{
                 entities.forEach(entity =>{
-                    if (text_value == entity.answer_key)
+                    if (text_value === entity.answer_key)
                         result_list.push(entity);
                 });
                 break;
             }
             case 'youtube_link':{
                 entities.forEach(entity =>{
-                    if (text_value == entity.youtube_link)
+                    if (text_value === entity.youtube_link)
                         result_list.push(entity);
                 });
                 break;
             }
             case 'publish_date':{
                 entities.forEach(entity =>{
-                    if (text_value == entity.publish_date)
+                    if (text_value === entity.publish_date)
                         result_list.push(entity);
                 });
                 break;
@@ -657,14 +699,9 @@ async function submitResult(submission, sessionId, evaluationId) {
     }
 }
 
-function resetContainer(container) {
-    currentLoadIndex = 0;
-    container.innerHTML = popupImageDiv;
-}
-
 submitButton = document.querySelector('.submit-button')
 submitButton.onclick = async () => {
-    const chosen = document.getElementById('recheck').querySelectorAll('.box .search-layer .expand')
+    const chosen = document.getElementById('recheck').querySelectorAll('.box .search-layer .expand');
     const ans = document.getElementById('qa_answer').value
     const mode = modeSelection.value;
     if (chosen.length < 1) {
@@ -693,18 +730,19 @@ submitButton.onclick = async () => {
             }]
         };
     } else if (mode === 'trake') {
-        let text = `TR-${chosen[0].getAttribute('data-video_id')}`;
+        let text = `TR-${chosen[0].getAttribute('data-video_id')}-`;
         for (let i = 0; i < chosen.length; i++) {
-            text += '-' + chosen[i].getAttribute('data-frame_order');
+            text += `${chosen[i].getAttribute('data-frame_order')},`;
         }
         submission = {
             answerSets: [{
                 answers: [{
-                    text: text
+                    text: text.slice(0, -1)
                 }]
             }]
         };
     }
+    console.log(submission)
     await submitResult(submission, idKey.sessionId, idKey.evaluationId);
     submitButton.textContent = 'SUBMIT'
 }

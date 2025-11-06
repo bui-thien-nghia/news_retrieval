@@ -1,15 +1,59 @@
+import json
 from glob import glob
 from utils.py_utils import *
 from flask import Flask, request, jsonify, render_template
+from flask_sock import Sock
+from flask_socketio import SocketIO, send, emit, join_room, leave_room
 
 app = Flask(__name__)
 app.debug = False # Set to False in production
-
+sock = Sock(app)
+recheck_boxes = []
 list_datasets = {}
+ws_clients = set()
+
 all_dataset_file_names = glob('datasets\\*.pt')
 for filename in all_dataset_file_names:
     print(f'Found {filename.split('\\')[-1][:-3]}')
     list_datasets[filename.split('\\')[-1][:-3]] = get_dataset_from_local(filename)
+
+def broadcast(clients, data):
+    for client in clients:
+        try:
+            client.send(json.dumps({
+                'data': data,
+                'type': 'recheck_update'
+            }))
+        except Exception:
+            clients.discard(client)
+
+@sock.route('/ws')
+def handle_ws(ws):
+    ws_clients.add(ws)
+    try:
+        while True:
+            data = json.loads(ws.receive())
+            try:
+                if data['type'] == 'recheck_add':
+                    recheck_boxes.append(data['data'])
+                    broadcast(ws_clients, recheck_boxes)
+                    print(f'Add recheck called. Recheck list after call: {recheck_boxes}')
+                elif data['type'] == 'recheck_swap':
+                    box1 = data['data']['box1']
+                    box2 = data['data']['box2']
+                    idx1 = recheck_boxes.index(box1)
+                    idx2 = recheck_boxes.index(box2)
+                    recheck_boxes[idx1], recheck_boxes[idx2] = recheck_boxes[idx2], recheck_boxes[idx1]
+                    broadcast(ws_clients, recheck_boxes)
+                    print(f'Swap recheck called. Recheck list after call: {recheck_boxes}')
+                elif data['type'] == 'recheck_remove':
+                    recheck_boxes.remove(data['data'])
+                    broadcast(ws_clients, recheck_boxes)
+            except Exception as e:
+                print(f'Error: {e}. Data received: {data['data']}')
+    finally:
+        ws_clients.discard(ws)
+
 
 @app.route('/')
 def index():
