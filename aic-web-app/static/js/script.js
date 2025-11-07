@@ -69,33 +69,89 @@ function resetContainer(container) {
     container.innerHTML = popupImageDiv;
 }
 
+// Box template
+function constructBox(entity) {
+    const Box = document.createElement('div');
+    Box.className = 'box';
+    Box.innerHTML = `
+        <div class="image-layer">
+            <img class="image-for-display" src="${entity.img_link}" alt="Image broken:<" loading="lazy">
+        </div>
+        <div class="tag-layer">
+            <div class="tag tag-video_id" id="tag_video_id">${entity.video_id}</div>
+            <div class="tag tag-frame_id" id="tag_frame_id">${entity.frame_id}</div>
+            <div class="tag tag-time_order" id="tag_time_order">${entity.time_order}</div>
+            <div class="tag tag-frame_order" id="tag_frame_order">${entity.frame_order}</div>
+            <div class="tag tag-answer_key" id="tag_answer_key">${entity.answer_key}</div>
+            <div class="tag tag-youtube_link" id="tag_youtube_link"><a target="_blank" href=${entity.youtube_link}>YouTube link</a></div>
+            <div class="tag tag-publish_date" id="tag_publish_date">${entity.publish_date}</div>
+        </div>
+
+        <div class="search-layer">
+            <div class="button cont-search" data-img_src=${entity.img_link}>🔍</div>
+            <div class="button send-recheck">➡️</div>
+            <div class="button expand" 
+                data-img_src="${entity.img_link}"
+                data-vid_src="${entity.vid_link}#t=${parseFloat(entity.time_order) / 1000}" 
+                data-video_id=${entity.video_id} 
+                data-frame_id=${entity.frame_id} 
+                data-time_order=${entity.time_order} 
+                data-frame_order=${entity.frame_order} 
+                data-fps=${entity.fps} 
+                data-answer_key=${entity.answer_key} 
+                data-youtube_link=${entity.youtube_link} 
+                data-publish_date=${entity.publish_date} >&#x26F6;
+            </div>
+        </div>
+    `;
+    
+    return Box;
+}
+
 // Web socket for recheck synchronization
 function initWebSocket() {
-    ws = new WebSocket(`ws://localhost:5000/ws`);
+    ws = new WebSocket(`ws://${window.location.hostname}:5000/ws`);
 
-    ws.onopen = () => {console.log('Web socket opened');};
+    ws.onopen = () => {
+        console.log('Web socket opened');
+        ws.send(JSON.stringify({
+            type: 'recheck_preload'
+        }));
+    };
 
-    ws.onmessage = (e) => {
-        const data = JSON.parse(e.data);
-        if (data.type === 'recheck_update') {
-            let recheckContainer = document.getElementById('recheck');
+    ws.onmessage = async (e) => {
+        try {
+            const data = JSON.parse(e.data);
+            const recheckContainer = document.getElementById('recheck');
             recheckContainer.innerHTML = '';
-            data.data.forEach(recheckImgLink => {
-                const expand = document.querySelector(`[data-img_src="${recheckImgLink}"]`);
-                const recheckBox = expand.parentElement.parentElement.cloneNode(true);
-                recheckContainer.appendChild(constructRecheckBox(recheckBox));
-            });
+
+            for (const boxInfo of data.data) {
+                let entity = await callPythonFunction('query', {
+                    link: boxInfo.img_src,
+                    collection_name: document.getElementById("collection_name").value
+                }).catch(e => {
+                    console.error('Error getting recheck\'s data: ', e);
+                });
+                entity.time_order = boxInfo.time_order;
+                entity.frame_order = boxInfo.frame_order;
+
+                let recheckBox = constructBox(entity);
+                recheckBox = constructRecheckBox(recheckBox);
+                recheckContainer.appendChild(recheckBox);
+            }
+        } catch (e) {
+            console.error('Error handling web socket message:', e);
         }
     };
 
     ws.onerror = (e) => {console.error('Web socket error', e);};
 
     ws.onclose = () => {
-        console.log('Connection failed, attempting to reconnect...')
+        console.log('Connection failed, attempting to reconnect...');
         setTimeout(initWebSocket, 1000);
     }
 }
-document.addEventListener('DOMContentLoaded', () => initWebSocket())
+document.addEventListener('DOMContentLoaded', () => initWebSocket());
 
 // Construct recheck box
 function constructRecheckBox(recheckBox) {
@@ -114,11 +170,23 @@ function constructRecheckBox(recheckBox) {
     recheckMoveUp.addEventListener('click', () => {
         if (recheckBox.previousSibling !== null) {
             recheckImgLinkPrev = recheckBox.previousSibling.querySelector('.search-layer .expand').getAttribute('data-img_src');
+            recheckTimePrev = recheckBox.previousSibling.querySelector('.search-layer .expand').getAttribute('data-time_order');
+            recheckFramePrev = recheckBox.previousSibling.querySelector('.search-layer .expand').getAttribute('data-frame_order');
             recheckImgLink = recheckBox.querySelector('.search-layer .expand').getAttribute('data-img_src');
+            recheckTime = recheckBox.querySelector('.search-layer .expand').getAttribute('data-time_order');
+            recheckFrame = recheckBox.querySelector('.search-layer .expand').getAttribute('data-frame_order');
             ws.send(JSON.stringify({
                 data: {
-                    box1: recheckImgLinkPrev,
-                    box2: recheckImgLink
+                    box1: {
+                        img_src: recheckImgLinkPrev,
+                        time_order: recheckTimePrev,
+                        frame_order: recheckFramePrev
+                    },
+                    box2: {
+                        img_src: recheckImgLink,
+                        time_order: recheckTime,
+                        frame_order: recheckFrame,
+                    }
                 },
                 type: 'recheck_swap'
             }));
@@ -129,11 +197,23 @@ function constructRecheckBox(recheckBox) {
     recheckMoveDown.addEventListener('click', () => {
         if (recheckBox.nextSibling !== null) {
             recheckImgLinkNext = recheckBox.nextSibling.querySelector('.search-layer .expand').getAttribute('data-img_src');
+            recheckTimeNext = recheckBox.nextSibling.querySelector('.search-layer .expand').getAttribute('data-time_order');
+            recheckFrameNext = recheckBox.nextSibling.querySelector('.search-layer .expand').getAttribute('data-frame_order');
             recheckImgLink = recheckBox.querySelector('.search-layer .expand').getAttribute('data-img_src');
+            recheckTime = recheckBox.querySelector('.search-layer .expand').getAttribute('data-time_order');
+            recheckFrame = recheckBox.querySelector('.search-layer .expand').getAttribute('data-frame_order');
             ws.send(JSON.stringify({
                 data: {
-                    box1: recheckImgLinkNext,
-                    box2: recheckImgLink
+                    box1: {
+                        img_src: recheckImgLinkNext,
+                        time_order: recheckTimeNext,
+                        frame_order: recheckFrameNext
+                    },
+                    box2: {
+                        img_src: recheckImgLink,
+                        time_order: recheckTime,
+                        frame_order: recheckFrame,
+                    }
                 },
                 type: 'recheck_swap'
             }));
@@ -143,8 +223,14 @@ function constructRecheckBox(recheckBox) {
     recheckRemove.setAttribute('class', 'button remove-recheck');
     recheckRemove.addEventListener('click', () => {
         recheckImgLink = recheckBox.querySelector('.search-layer .expand').getAttribute('data-img_src');
+        recheckTime = recheckBox.querySelector('.search-layer .expand').getAttribute('data-time_order');
+        recheckFrame = recheckBox.querySelector('.search-layer .expand').getAttribute('data-frame_order');
         ws.send(JSON.stringify({
-            data: recheckImgLink,
+            data: {
+                img_src: recheckImgLink,
+                time_order: recheckTime,
+                frame_order: recheckFrame
+            },
             type: 'recheck_remove'
         }));
     });
@@ -188,17 +274,17 @@ function addExpandTrigger(expand) {
     });
 
     popupRecheck.addEventListener('click', () => {
-        let recheckBox = expand.parentElement.parentElement.cloneNode(true);
-        recheckBox.querySelector('.tag-layer .tag-time_order').textContent = curTime;
-        recheckBox.querySelector('.tag-layer .tag-frame_order').textContent = curFrame;
-        recheckBox.querySelector('.search-layer .expand').getAttribute('data-time_order').value = curTime;
-        recheckBox.querySelector('.search-layer .expand').getAttribute('data-frame_order').value = curFrame;
-
-        recheckImgLink = recheckBox.querySelector('.search-layer .expand').getAttribute('data-img_src');
-        recheckBox.style.display = 'block';
+        let cloneBox = expand.parentElement.parentElement.cloneNode(true);
+        let recheckImgLink = cloneBox.querySelector('.search-layer .expand').getAttribute('data-img_src');
+        let recheckTime = curTime;
+        let recheckFrame = curFrame;
         ws.send(JSON.stringify({
-            data: recheckImgLink,
-            type: 'recheck_add'
+            data: {
+                img_src: recheckImgLink,
+                time_order: recheckTime,
+                frame_order: recheckFrame
+            },
+            type: 'recheck_add',
         }));
     });
 
@@ -246,7 +332,7 @@ async function addContinuousSearchTrigger(button) {
         resultContainer.innerHTML = '<span>No results found</span>';
         return;
     }
-    resetContainer(resultContainer)
+    resetContainer(resultContainer);
     loadImage(resultContainer, currentDisplay);
 }
 
@@ -268,8 +354,14 @@ function addListeners(tags, cont_button, expand_button, recheck_button) {
     recheck_button.addEventListener('click', () => {
         let recheckBox = recheck_button.parentElement.parentElement.cloneNode(true);
         recheckImgLink = recheckBox.querySelector('.search-layer .expand').getAttribute('data-img_src');
+        recheckTime = recheckBox.querySelector('.search-layer .expand').getAttribute('data-time_order');
+        recheckFrame = recheckBox.querySelector('.search-layer .expand').getAttribute('data-frame_order');
         ws.send(JSON.stringify({
-            data: recheckImgLink,
+            data: {
+                img_src: recheckImgLink,
+                time_order: recheckTime,
+                frame_order: recheckFrame
+            },
             type: 'recheck_add'
         }));
     }) 
@@ -286,39 +378,7 @@ function loadImage(container, listEntities) {
         for (let i = currentLoadIndex; i < end; i++) {
             try {
                 const entity = listEntities[i];
-                const resultItem = document.createElement('div');
-                resultItem.className = 'box';
-                resultItem.innerHTML = `
-                    <div class="image-layer">
-                        <img class="image-for-display" src="${entity.img_link}" alt="Image broken:<" loading="lazy">
-                    </div>
-                    <div class="tag-layer">
-                        <div class="tag tag-video_id" id="tag_video_id">${entity.video_id}</div>
-                        <div class="tag tag-frame_id" id="tag_frame_id">${entity.frame_id}</div>
-                        <div class="tag tag-time_order" id="tag_time_order">${entity.time_order}</div>
-                        <div class="tag tag-frame_order" id="tag_frame_order">${entity.frame_order}</div>
-                        <div class="tag tag-answer_key" id="tag_answer_key">${entity.answer_key}</div>
-                        <div class="tag tag-youtube_link" id="tag_youtube_link"><a target="_blank" href=${entity.youtube_link}>YouTube link</a></div>
-                        <div class="tag tag-publish_date" id="tag_publish_date">${entity.publish_date}</div>
-                    </div>
-
-                    <div class="search-layer">
-                        <div class="button cont-search" data-img_src=${entity.img_link}>🔍</div>
-                        <div class="button send-recheck">➡️</div>
-                        <div class="button expand" 
-                            data-img_src="${entity.img_link}"
-                            data-vid_src="${entity.vid_link}#t=${parseFloat(entity.time_order) / 1000}" 
-                            data-video_id=${entity.video_id} 
-                            data-frame_id=${entity.frame_id} 
-                            data-time_order=${entity.time_order} 
-                            data-frame_order=${entity.frame_order} 
-                            data-fps=${entity.fps} 
-                            data-answer_key=${entity.answer_key} 
-                            data-youtube_link=${entity.youtube_link} 
-                            data-publish_date=${entity.publish_date} >&#x26F6;
-                        </div>
-                    </div>
-                `
+                const resultItem = constructBox(entity);
 
                 const tags = resultItem.querySelectorAll('.tag');
                 const cont_button = resultItem.querySelector('.cont-search');
@@ -692,10 +752,12 @@ async function submitResult(submission, sessionId, evaluationId) {
         let data = await response.json();
         console.log(data);
         if (!response.ok) {
-            throw new Error(`Submission failed, response with status: ${response.status}`)
+            throw new Error(`Submission failed, response with status: ${response.status}`);
         }
+        return data;
     } catch (e){
         console.log(`Error while submitting result: ${e}`);
+        return {submission: 'ERROR'};
     }
 }
 
@@ -705,6 +767,7 @@ submitButton.onclick = async () => {
     const ans = document.getElementById('qa_answer').value
     const mode = modeSelection.value;
     if (chosen.length < 1) {
+
         return;
     }
 
@@ -743,6 +806,9 @@ submitButton.onclick = async () => {
         };
     }
     console.log(submission)
-    await submitResult(submission, idKey.sessionId, idKey.evaluationId);
-    submitButton.textContent = 'SUBMIT'
+    result = await submitResult(submission, idKey.sessionId, idKey.evaluationId);
+    submitButton.textContent = result.submission;
+    setTimeout(() => {
+        submitButton.textContent = 'SUBMIT';
+    }, 2000);
 }

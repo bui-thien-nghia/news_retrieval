@@ -3,32 +3,28 @@ import os
 import torch
 import torch.nn.functional as F
 from open_clip import create_model_from_pretrained, get_tokenizer
-from pymilvus import MilvusClient, connections, Collection
+from pymilvus import MilvusClient
 from transformers import AutoTokenizer, AutoModelForSeq2SeqLM
 
 # Load essentials
 model, preprocess = create_model_from_pretrained('hf-hub:apple/DFN5B-CLIP-ViT-H-14-384')
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
-model.eval()
-model.to(device)
+model = model.eval().to(device)
 tokenizer = get_tokenizer('ViT-H-14')
 
 translator_name = 'VietAI/envit5-translation'
 translate_tokenizer = AutoTokenizer.from_pretrained(translator_name)
 translate_model = AutoModelForSeq2SeqLM.from_pretrained(translator_name)
-translate_model.eval()
-translate_model.to(device)
+translate_model = translate_model.eval().to(device)
 
-uri = 'https://in03-cbdb10d1d199984.serverless.aws-eu-central-1.cloud.zilliz.com'
-token ='6305ff67695e59bf211ca717cb68f74f7367ccfd56195824ba6aad7c07f5924cc6c9da8aadec4354aedc193a997225494903a9d7'
-client = MilvusClient(
-    uri=uri,
-    token=token,
-)
-connections.connect(
-    uri=uri,
-    token=token,
-)
+# Zilliz Cloud hosting
+# client = MilvusClient(
+#     uri='https://in03-cbdb10d1d199984.serverless.aws-eu-central-1.cloud.zilliz.com',
+#     token='6305ff67695e59bf211ca717cb68f74f7367ccfd56195824ba6aad7c07f5924cc6c9da8aadec4354aedc193a997225494903a9d7',
+# )
+
+# Local hosting with Docker Desktop
+client = MilvusClient('http://localhost:19530')
 
 # Function define
 def get_dataset_from_local(file_name: str):
@@ -74,17 +70,23 @@ def prepare_query(query: str, lang: str):
 
 
 def get_milvus_feature(link: str, collection_name: str):
-    collection = Collection(collection_name)
-    iterator = collection.query_iterator(
-        batch_size=1,
-        expr=f'img_link == \"{link}\"',
+    result = client.query(
+        collection_name=collection_name,
+        filter=f'img_link == \"{link}\"',
         output_fields=["vector"]
     )
+    
+    return result[0]['vector']
 
-    result = iterator.next()[0]['vector']
-    iterator.close()
 
-    return result
+def query(link: str, collection_name: str):
+    result = client.query(
+        collection_name=collection_name,
+        filter=f'img_link == \"{link}\"',
+        output_fields=["*"]
+    )
+    
+    return result[0]
 
 
 def search(query: any, lang: str, collection_name: str, top_k: int, **options):
@@ -121,7 +123,7 @@ def search(query: any, lang: str, collection_name: str, top_k: int, **options):
         'search_params': {
             'metric_type': 'COSINE',
             'params': {
-                'ef': options['ef'] if 'ef' in options and options['ef'] > 0 else 200
+                'ef': options['ef'] if 'ef' in options and options['ef'] > 0 else top_k + 100
             }
         }
     }
@@ -146,36 +148,3 @@ def search(query: any, lang: str, collection_name: str, top_k: int, **options):
             result_dict_list.append(hit['entity'])
     
     return result_dict_list
-
-
-def get_keys(search_result: list[dict]):
-    '''
-    Trả về list chứa key của các hình -> list[str]
-    '''
-    if len(search_result) == 0:
-        return []
-    return [entity['img_key'] for entity in search_result]
-
-
-def get_metadata_list_dict(search_result: list[dict]):
-    '''
-    Trả về dict chứa thông tin của tất cả metadata của các hình -> dict{'key': list[any]}
-    '''
-    # Create a new dict with empty lists
-    if len(search_result) == 0:
-        return {}
-    
-    # Add fields into dict
-    all_fields = list(search_result[0].keys())
-    metadata_list_dict = {}
-    for field in all_fields:
-        if field not in ['id', 'vector', 'img_key']:
-            metadata_list_dict[field] = []
-
-    # Add entities' metadata into lists
-    for entity in search_result:
-        for field in list[metadata_list_dict.keys()]:
-            if entity[field] not in metadata_list_dict[field]:
-                metadata_list_dict[field].append(entity[field])
-
-    return metadata_list_dict

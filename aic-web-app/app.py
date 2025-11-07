@@ -6,7 +6,6 @@ from flask_sock import Sock
 from flask_socketio import SocketIO, send, emit, join_room, leave_room
 
 app = Flask(__name__)
-app.debug = False # Set to False in production
 sock = Sock(app)
 recheck_boxes = []
 list_datasets = {}
@@ -17,15 +16,16 @@ for filename in all_dataset_file_names:
     print(f'Found {filename.split('\\')[-1][:-3]}')
     list_datasets[filename.split('\\')[-1][:-3]] = get_dataset_from_local(filename)
 
-def broadcast(clients, data):
+def broadcast(clients, payload):
+    payload = json.dumps(payload)
+    failed_clients = set()
     for client in clients:
         try:
-            client.send(json.dumps({
-                'data': data,
-                'type': 'recheck_update'
-            }))
-        except Exception:
-            clients.discard(client)
+            client.send(payload)
+        except Exception as e:
+            print(f'Failed to send to client: {e}')
+            failed_clients.add(client)
+    ws_clients.difference_update(failed_clients)
 
 @sock.route('/ws')
 def handle_ws(ws):
@@ -33,22 +33,29 @@ def handle_ws(ws):
     try:
         while True:
             data = json.loads(ws.receive())
+            payload = {}
             try:
                 if data['type'] == 'recheck_add':
                     recheck_boxes.append(data['data'])
-                    broadcast(ws_clients, recheck_boxes)
-                    print(f'Add recheck called. Recheck list after call: {recheck_boxes}')
+                    payload['data'] = recheck_boxes
+                    print(f'Add recheck called. Recheck list length after call: {len(recheck_boxes)}')
                 elif data['type'] == 'recheck_swap':
                     box1 = data['data']['box1']
                     box2 = data['data']['box2']
                     idx1 = recheck_boxes.index(box1)
                     idx2 = recheck_boxes.index(box2)
                     recheck_boxes[idx1], recheck_boxes[idx2] = recheck_boxes[idx2], recheck_boxes[idx1]
-                    broadcast(ws_clients, recheck_boxes)
-                    print(f'Swap recheck called. Recheck list after call: {recheck_boxes}')
+                    payload['data'] = recheck_boxes
+                    print(f'Swap recheck called. Recheck list length after call: {len(recheck_boxes)}')
                 elif data['type'] == 'recheck_remove':
                     recheck_boxes.remove(data['data'])
-                    broadcast(ws_clients, recheck_boxes)
+                    payload['data'] = recheck_boxes
+                    print(f'Remove recheck called. Recheck list length after call: {len(recheck_boxes)}')
+                elif data['type'] == 'recheck_preload':
+                    payload['data'] = recheck_boxes
+                    print(f'Preload recheck called.')
+
+                broadcast(ws_clients, payload)
             except Exception as e:
                 print(f'Error: {e}. Data received: {data['data']}')
     finally:
@@ -82,6 +89,9 @@ def handle_request():
         elif f_name == 'get_milvus_feature':
             result = get_milvus_feature(**args)
             return jsonify(result)
+        elif f_name == 'query':
+            result = query(**args)
+            return jsonify(result)
         else:
             raise ValueError(f'Function {f_name} is not defined in this module.')
     except Exception as e:
@@ -89,4 +99,4 @@ def handle_request():
         return jsonify({'error': str(e)}), 500
     
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000)
+    app.run(host='0.0.0.0', port=5000, debug=False)
