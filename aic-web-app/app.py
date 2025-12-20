@@ -1,12 +1,12 @@
 import json
 from glob import glob
 from utils.py_utils import *
-from flask import Flask, request, jsonify, render_template
+from flask import Flask, request, jsonify, render_template, send_from_directory, abort
 from flask_sock import Sock
-from flask_socketio import SocketIO, send, emit, join_room, leave_room
 
 app = Flask(__name__)
 sock = Sock(app)
+ROOTDIR = r'D:/'
 recheck_boxes = []
 list_datasets = {}
 ws_clients = set()
@@ -48,8 +48,15 @@ def handle_ws(ws):
                     payload['data'] = recheck_boxes
                     print(f'Swap recheck called. Recheck list length after call: {len(recheck_boxes)}')
                 elif data['type'] == 'recheck_remove':
-                    recheck_boxes.remove(data['data'])
-                    payload['data'] = recheck_boxes
+                    try:
+                        recheck_boxes.remove(data['data'])
+                        payload['data'] = recheck_boxes
+                    except Exception as e:
+                        print(f'Error: {e}, replaced with empty list.')
+                        print(data['data'])
+                        print(recheck_boxes)
+                        recheck_boxes.clear()
+                        payload['data'] = recheck_boxes
                     print(f'Remove recheck called. Recheck list length after call: {len(recheck_boxes)}')
                 elif data['type'] == 'recheck_preload':
                     payload['data'] = recheck_boxes
@@ -57,9 +64,17 @@ def handle_ws(ws):
 
                 broadcast(ws_clients, payload)
             except Exception as e:
-                print(f'Error: {e}. Data received: {data['data']}')
+                print(f'Error: {e}. Data received: {data}')
     finally:
         ws_clients.discard(ws)
+
+
+@app.route('/local/<path:filename>')
+def serve_image(filename):
+    full = ROOTDIR + filename
+    if not full or not os.path.isfile(full):
+        abort(404)
+    return send_from_directory(ROOTDIR, filename)
 
 
 @app.route('/')

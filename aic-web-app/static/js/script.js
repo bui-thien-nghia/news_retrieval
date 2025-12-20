@@ -69,13 +69,20 @@ function resetContainer(container) {
     container.innerHTML = popupImageDiv;
 }
 
+//Support local data loading
+function mapLink(link) {
+    if (/^https?:\/\//i.test(link)) return link;
+    const m = link.replace(/^[A-Za-z]:[\\/]/, '').replace(/\\/g, '/');
+    return `/local/${m}`;
+}
+
 // Box template
 function constructBox(entity) {
     const Box = document.createElement('div');
     Box.className = 'box';
     Box.innerHTML = `
         <div class="image-layer">
-            <img class="image-for-display" src="${entity.img_link}" alt="Image broken:<" loading="lazy">
+            <img class="image-for-display" src="${mapLink(entity.img_link)}" alt="Image broken:<" loading="lazy">
         </div>
         <div class="tag-layer">
             <div class="tag tag-video_id" id="tag_video_id">${entity.video_id}</div>
@@ -225,6 +232,11 @@ function constructRecheckBox(recheckBox) {
         recheckImgLink = recheckBox.querySelector('.search-layer .expand').getAttribute('data-img_src');
         recheckTime = recheckBox.querySelector('.search-layer .expand').getAttribute('data-time_order');
         recheckFrame = recheckBox.querySelector('.search-layer .expand').getAttribute('data-frame_order');
+        console.log({
+                img_src: recheckImgLink,
+                time_order: recheckTime,
+                frame_order: recheckFrame
+        });
         ws.send(JSON.stringify({
             data: {
                 img_src: recheckImgLink,
@@ -263,7 +275,7 @@ function addExpandTrigger(expand) {
         <div class="tag tag-publish_date" id="tag_publish_date">${expand.getAttribute('data-publish_date')}</div>
     `;
 
-    popupVideo.src = expand.getAttribute('data-vid_src');
+    popupVideo.src = mapLink(expand.getAttribute('data-vid_src'));
     popupVideo.addEventListener('timeupdate', () => {
         curTime = parseInt(popupVideo.currentTime * 1000)
         curFrame = parseInt(popupVideo.currentTime * parseFloat(expand.getAttribute('data-fps')));
@@ -276,8 +288,8 @@ function addExpandTrigger(expand) {
     popupRecheck.addEventListener('click', () => {
         let cloneBox = expand.parentElement.parentElement.cloneNode(true);
         let recheckImgLink = cloneBox.querySelector('.search-layer .expand').getAttribute('data-img_src');
-        let recheckTime = curTime;
-        let recheckFrame = curFrame;
+        let recheckTime = curTime.toString();
+        let recheckFrame = curFrame.toString();
         ws.send(JSON.stringify({
             data: {
                 img_src: recheckImgLink,
