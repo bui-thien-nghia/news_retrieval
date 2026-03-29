@@ -1,6 +1,7 @@
 # Module setup
 import os
 import torch
+import pandas as pd
 import torch.nn.functional as F
 from open_clip import create_model_from_pretrained, get_tokenizer
 from pymilvus import MilvusClient
@@ -29,8 +30,10 @@ client = MilvusClient('http://localhost:19530')
 # Function define
 def get_dataset_from_local(file_name: str):
     if os.path.exists(file_name):
-        dataset = torch.load(file_name)
-        return list(dataset.values())
+        dataset = pd.read_parquet(file_name)
+        dataset = dataset.drop(columns=['vector'], errors='ignore')
+        dataset = dataset.to_dict(orient='records')
+        return dataset
     else:
         print('No such dataset found.')
         return []

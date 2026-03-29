@@ -18,7 +18,7 @@ const popupImageDiv = `
         </div>
     </div>
 `;
-const default_dataset = 'aic_2025';
+const default_dataset = 'news_retrieval';
 
 // Hard-coded because no other teams would use our program lolol
 const username = "team075";

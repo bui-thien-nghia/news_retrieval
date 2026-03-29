@@ -1,4 +1,5 @@
 import json
+import sys
 from glob import glob
 from utils.py_utils import *
 from flask import Flask, request, jsonify, render_template, send_from_directory, abort
@@ -11,10 +12,16 @@ recheck_boxes = []
 list_datasets = {}
 ws_clients = set()
 
-all_dataset_file_names = glob('datasets\\*.pt')
-for filename in all_dataset_file_names:
-    print(f'Found {filename.split('\\')[-1][:-3]}')
-    list_datasets[filename.split('\\')[-1][:-3]] = get_dataset_from_local(filename)
+all_dataset_file_paths = glob('datasets\\*')
+if not all_dataset_file_paths:
+    print('No dataset found, exiting...')
+    sys.exit(1)
+
+for path in all_dataset_file_paths:
+    filename = path.split('\\')[-1].split('.')[0]
+    list_datasets[filename] = get_dataset_from_local(path)
+    print(f'Found {filename} with {len(list_datasets[filename])} samples')
+    
 
 def broadcast(clients, payload):
     payload = json.dumps(payload)

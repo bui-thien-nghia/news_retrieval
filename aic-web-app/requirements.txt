@@ -1,7 +1,0 @@
-torch
-torchvision
-torchaudio
-open-clip-torch
-pymilvus
-transformers
-flask
