@@ -7,11 +7,11 @@
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>Team TH3N's image search web</title>
         <link rel="icon" href="{{ url_for('static', filename='icon.png') }}" type="image/x-icon">
-        <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}" type="text/css">
+        <link rel="stylesheet" href="../static/css/style.css" type="text/css">
     </head>
 
     <body>
-        <div class="top-panel">
+        <div class="top-panel" style="grid-template-columns: 20% 3% 3% 74% 0%;">
             <div class="color-settings button">
                 <div id="color_open"><span>⚙ Color</span></div>
                 <div id="modal_container">
@@ -56,7 +56,7 @@
                     <input type="range" id="num_columns" value=3 min=1 max=10>
                 </label>
             </div>
-            <div class="show-recheck button" id="show_recheck"><span>Recheck</span></div>
+            <div class="show-recheck button" id="show_recheck" style="display: none;"><span>Recheck</span></div>
         </div>
 
         <div class="left-panel control-element">

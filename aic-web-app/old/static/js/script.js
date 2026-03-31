@@ -431,25 +431,6 @@ popupClose.addEventListener('click', () => {
 });
 
 
-// Show/hide recheck panel
-var recheckShown = false;
-document.querySelector('.show-recheck').addEventListener('click', () => {
-    const body = document.body;
-    if (!recheckShown) {
-        body.style.gridTemplateAreas =`
-            "h h h"
-            "l m r"
-        `;
-        recheckShown = true;
-    } else {
-        body.style.gridTemplateAreas =`
-            "h h h"
-            "l m m"
-        `;
-        recheckShown = false;
-    }
-});
-
 // Scroll only appears a set number of images
 document.querySelector('.middle-panel').addEventListener('scroll', function() {
     const container = this;
