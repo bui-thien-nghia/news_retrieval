@@ -7,7 +7,7 @@ from flask_sock import Sock
 
 app = Flask(__name__)
 sock = Sock(app)
-ROOTDIR = r'D:/'
+ROOTDIR = r'E:/'
 recheck_boxes = []
 list_datasets = {}
 ws_clients = set()

@@ -72,22 +72,48 @@ def prepare_query(query: str, lang: str):
     return text_feature
 
 
+def _escape_milvus_string(value: str) -> str:
+    return value.replace('\\', '\\\\').replace('"', '\\"')
+
+
+def _build_img_link_filter(link: str) -> str:
+    variants = []
+    for candidate in (link, link.replace('/', '\\'), link.replace('\\', '/')):
+        if candidate and candidate not in variants:
+            variants.append(candidate)
+
+    clauses = [f'img_link == "{_escape_milvus_string(item)}"' for item in variants]
+    return clauses[0] if len(clauses) == 1 else ' or '.join([f'({clause})' for clause in clauses])
+
+
 def get_milvus_feature(link: str, collection_name: str):
+    if not link:
+        raise ValueError('img_link is empty.')
+
     result = client.query(
         collection_name=collection_name,
-        filter=f'img_link == \"{link}\"',
+        filter=_build_img_link_filter(link),
         output_fields=["vector"]
     )
+
+    if not result:
+        raise ValueError(f'No vector found for img_link: {link}')
     
     return result[0]['vector']
 
 
 def query(link: str, collection_name: str):
+    if not link:
+        raise ValueError('img_link is empty.')
+
     result = client.query(
         collection_name=collection_name,
-        filter=f'img_link == \"{link}\"',
+        filter=_build_img_link_filter(link),
         output_fields=["*"]
     )
+
+    if not result:
+        raise ValueError(f'No entry found for img_link: {link}')
     
     return result[0]
 

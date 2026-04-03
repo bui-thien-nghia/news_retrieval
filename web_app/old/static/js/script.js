@@ -1,7 +1,7 @@
 // Setup
 const loadBatchSize = 200;
 const numTags = 7;
-const output_fields = ['img_link', 'vid_link', 'video_id', 'frame_id', 'time_order', 'frame_order', 'fps', 'answer_key', 'youtube_link', 'publish_date']
+const output_fields = ['img_link', 'vid_link', 'video_id', 'frame_id', 'time_order', 'frame_order', 'fps', 'youtube_link']
 const popupImageDiv = `
     <div class="popup-container">
         <div class="box popup">
@@ -89,25 +89,22 @@ function constructBox(entity) {
             <div class="tag tag-frame_id" id="tag_frame_id">${entity.frame_id}</div>
             <div class="tag tag-time_order" id="tag_time_order">${entity.time_order}</div>
             <div class="tag tag-frame_order" id="tag_frame_order">${entity.frame_order}</div>
-            <div class="tag tag-answer_key" id="tag_answer_key">${entity.answer_key}</div>
             <div class="tag tag-youtube_link" id="tag_youtube_link"><a target="_blank" href=${entity.youtube_link}>YouTube link</a></div>
-            <div class="tag tag-publish_date" id="tag_publish_date">${entity.publish_date}</div>
         </div>
 
         <div class="search-layer">
             <div class="button cont-search" data-img_src=${entity.img_link}>🔍</div>
             <div class="button send-recheck">➡️</div>
             <div class="button expand" 
-                data-img_src="${entity.img_link}"
+                data-img_src="${entity.img_link}" 
                 data-vid_src="${entity.vid_link}#t=${parseFloat(entity.time_order) / 1000}" 
                 data-video_id=${entity.video_id} 
                 data-frame_id=${entity.frame_id} 
                 data-time_order=${entity.time_order} 
                 data-frame_order=${entity.frame_order} 
                 data-fps=${entity.fps} 
-                data-answer_key=${entity.answer_key} 
-                data-youtube_link=${entity.youtube_link} 
-                data-publish_date=${entity.publish_date} >&#x26F6;
+                data-youtube_link=${entity.youtube_link}>
+                &#x26F6;
             </div>
         </div>
     `;
@@ -130,15 +127,24 @@ function initWebSocket() {
         try {
             const data = JSON.parse(e.data);
             const recheckContainer = document.getElementById('recheck');
+            if (!recheckContainer) {
+                return;
+            }
             recheckContainer.innerHTML = '';
 
-            for (const boxInfo of data.data) {
-                let entity = await callPythonFunction('query', {
+            const recheckData = Array.isArray(data.data) ? data.data : [];
+
+            for (const boxInfo of recheckData) {
+                const entity = await callPythonFunction('query', {
                     link: boxInfo.img_src,
                     collection_name: document.getElementById("collection_name").value
                 }).catch(e => {
                     console.error('Error getting recheck\'s data: ', e);
+                    return null;
                 });
+                if (!entity) {
+                    continue;
+                }
                 entity.time_order = boxInfo.time_order;
                 entity.frame_order = boxInfo.frame_order;
 
@@ -270,9 +276,7 @@ function addExpandTrigger(expand) {
         <div class="tag tag-frame_id" id="tag_frame_id">${expand.getAttribute('data-frame_id')}</div>
         <div class="tag tag-time_order" id="tag_time_order">${expand.getAttribute('data-time_order')}</div>
         <div class="tag tag-frame_order" id="tag_frame_order">${expand.getAttribute('data-frame_order')}</div>
-        <div class="tag tag-answer_key" id="tag_answer_key">${expand.getAttribute('data-answer_key')}</div>
         <div class="tag tag-youtube_link" id="tag_youtube_link"><a target="_blank" href=${expand.getAttribute('data-youtube_link')}>YouTube link</a></div>
-        <div class="tag tag-publish_date" id="tag_publish_date">${expand.getAttribute('data-publish_date')}</div>
     `;
 
     popupVideo.src = mapLink(expand.getAttribute('data-vid_src'));
@@ -569,13 +573,13 @@ function sorting_handler(event, input_id, entities){
                 });
                 break;
             }
-            case 'answer_key':{
-                entities.forEach(entity =>{
-                    if (text_value === entity.answer_key)
-                        result_list.push(entity);
-                });
-                break;
-            }
+            // case 'answer_key':{
+            //     entities.forEach(entity =>{
+            //         if (text_value === entity.answer_key)
+            //             result_list.push(entity);
+            //     });
+            //     break;
+            // }
             case 'youtube_link':{
                 entities.forEach(entity =>{
                     if (text_value === entity.youtube_link)
@@ -583,13 +587,13 @@ function sorting_handler(event, input_id, entities){
                 });
                 break;
             }
-            case 'publish_date':{
-                entities.forEach(entity =>{
-                    if (text_value === entity.publish_date)
-                        result_list.push(entity);
-                });
-                break;
-            }
+            // case 'publish_date':{
+            //     entities.forEach(entity =>{
+            //         if (text_value === entity.publish_date)
+            //             result_list.push(entity);
+            //     });
+            //     break;
+            // }
         };
         
         currentDisplay = [];
@@ -611,12 +615,12 @@ document.getElementById('sort_time_order').addEventListener('keydown', function(
 document.getElementById('sort_frame_order').addEventListener('keydown', function(event){
     sorting_handler(event, 'sort_frame_order',currentDisplay);
 });
-document.getElementById('sort_answer_key').addEventListener('keydown', function(event){
-    sorting_handler(event, 'sort_answer_key',currentDisplay);
-});
-document.getElementById('sort_publish_date').addEventListener('keydown', function(event){
-    sorting_handler(event, 'sort_publish_date',currentDisplay);
-});
+// document.getElementById('sort_answer_key').addEventListener('keydown', function(event){
+//     sorting_handler(event, 'sort_answer_key',currentDisplay);
+// });
+// document.getElementById('sort_publish_date').addEventListener('keydown', function(event){
+//     sorting_handler(event, 'sort_publish_date',currentDisplay);
+// });
 
 //Revert Searching
 document.getElementById("revert_searching").addEventListener('mouseover', function(event){
@@ -681,127 +685,127 @@ function LichSuTimKiem(){
 };
 
 // Submit mode handler
-modeSelection = document.querySelector('.mode-selection')
-modeSelection.onchange = () => {
-    const qaAnswer = document.getElementById('qa_answer');
-    const val = modeSelection.value;
-    if (val === "qa") {
-        qaAnswer.style.display = 'block';
-    } else {
-        qaAnswer.style.display = 'none';
-    }
-};
+// modeSelection = document.querySelector('.mode-selection')
+// modeSelection.onchange = () => {
+//     const qaAnswer = document.getElementById('qa_answer');
+//     const val = modeSelection.value;
+//     if (val === "qa") {
+//         qaAnswer.style.display = 'block';
+//     } else {
+//         qaAnswer.style.display = 'none';
+//     }
+// };
 
 // Submission handler
-async function getId(username, password) {
-    try {
-        let response = await fetch('https://eventretrieval.oj.io.vn/api/v2/login', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                username: username,
-                password: password
-            })
-        });
-        let data = await response.json();
+// async function getId(username, password) {
+//     try {
+//         let response = await fetch('https://eventretrieval.oj.io.vn/api/v2/login', {
+//             method: 'POST',
+//             headers: {
+//                 'Content-Type': 'application/json'
+//             },
+//             body: JSON.stringify({
+//                 username: username,
+//                 password: password
+//             })
+//         });
+//         let data = await response.json();
 
-        if (!response.ok) {
-            throw new Error(`Login failed, response with status ${response.status}`);
-        }
+//         if (!response.ok) {
+//             throw new Error(`Login failed, response with status ${response.status}`);
+//         }
 
-        const sessionId = data.sessionId;
+//         const sessionId = data.sessionId;
 
-        response = await fetch(`https://eventretrieval.oj.io.vn/api/v2/client/evaluation/list?session=${sessionId}`, { method: 'GET' });
-        data = await response.json();
+//         response = await fetch(`https://eventretrieval.oj.io.vn/api/v2/client/evaluation/list?session=${sessionId}`, { method: 'GET' });
+//         data = await response.json();
 
-        if (!response.ok) {
-            throw new Error(`Login failed, response with status ${response.status}`);
-        }
+//         if (!response.ok) {
+//             throw new Error(`Login failed, response with status ${response.status}`);
+//         }
 
-        const activeEvaluation = data.find(item => item.type === 'SYNCHRONOUS' && item.status === 'ACTIVE');
-        if (!activeEvaluation) {
-            throw new Error('No active evaluation found');
-        }
-        const evaluationId = activeEvaluation.id;
+//         const activeEvaluation = data.find(item => item.type === 'SYNCHRONOUS' && item.status === 'ACTIVE');
+//         if (!activeEvaluation) {
+//             throw new Error('No active evaluation found');
+//         }
+//         const evaluationId = activeEvaluation.id;
 
-        return {sessionId, evaluationId};
-    } catch (e){
-        console.log(`Error while fetching IDs: ${e}`);
-        return {};
-    }
-}
+//         return {sessionId, evaluationId};
+//     } catch (e){
+//         console.log(`Error while fetching IDs: ${e}`);
+//         return {};
+//     }
+// }
 
-async function submitResult(submission, sessionId, evaluationId) {
-    try {
-        let response = await fetch(`https://eventretrieval.oj.io.vn/api/v2/submit/${evaluationId}?session=${sessionId}`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(submission)
-        });
-        let data = await response.json();
-        console.log(data);
-        if (!response.ok) {
-            throw new Error(`Submission failed, response with status: ${response.status}`);
-        }
-        return data;
-    } catch (e){
-        console.log(`Error while submitting result: ${e}`);
-        return {submission: 'ERROR'};
-    }
-}
+// async function submitResult(submission, sessionId, evaluationId) {
+//     try {
+//         let response = await fetch(`https://eventretrieval.oj.io.vn/api/v2/submit/${evaluationId}?session=${sessionId}`, {
+//             method: 'POST',
+//             headers: {
+//                 'Content-Type': 'application/json'
+//             },
+//             body: JSON.stringify(submission)
+//         });
+//         let data = await response.json();
+//         console.log(data);
+//         if (!response.ok) {
+//             throw new Error(`Submission failed, response with status: ${response.status}`);
+//         }
+//         return data;
+//     } catch (e){
+//         console.log(`Error while submitting result: ${e}`);
+//         return {submission: 'ERROR'};
+//     }
+// }
 
-submitButton = document.querySelector('.submit-button')
-submitButton.onclick = async () => {
-    const chosen = document.getElementById('recheck').querySelectorAll('.box .search-layer .expand');
-    const ans = document.getElementById('qa_answer').value
-    const mode = modeSelection.value;
-    if (chosen.length < 1) {
+// submitButton = document.querySelector('.submit-button')
+// submitButton.onclick = async () => {
+//     const chosen = document.getElementById('recheck').querySelectorAll('.box .search-layer .expand');
+//     const ans = document.getElementById('qa_answer').value
+//     const mode = modeSelection.value;
+//     if (chosen.length < 1) {
 
-        return;
-    }
+//         return;
+//     }
 
-    submitButton.textContent = 'SUBMITTING...'
-    const idKey = await getId(username, password);
-    let submission = {};
-    if (mode === 'kis') {
-        submission = {
-            answerSets: [{
-                answers: [{
-                    mediaItemName: chosen[0].getAttribute('data-video_id'),
-                    start: parseInt(chosen[0].getAttribute('data-time_order')),
-                    end: parseInt(chosen[0].getAttribute('data-time_order')),
-                }]
-            }]
-        };
-    } else if (mode === 'qa') {
-        submission = {
-            answerSets: [{
-                answers: [{
-                    text: `QA-${ans}-${chosen[0].getAttribute('data-video_id')}-${chosen[0].getAttribute('data-time_order')}`
-                }]
-            }]
-        };
-    } else if (mode === 'trake') {
-        let text = `TR-${chosen[0].getAttribute('data-video_id')}-`;
-        for (let i = 0; i < chosen.length; i++) {
-            text += `${chosen[i].getAttribute('data-frame_order')},`;
-        }
-        submission = {
-            answerSets: [{
-                answers: [{
-                    text: text.slice(0, -1)
-                }]
-            }]
-        };
-    }
-    console.log(submission)
-    result = await submitResult(submission, idKey.sessionId, idKey.evaluationId);
-    submitButton.textContent = result.submission;
-    setTimeout(() => {
-        submitButton.textContent = 'SUBMIT';
-    }, 2000);
-}
+//     submitButton.textContent = 'SUBMITTING...'
+//     const idKey = await getId(username, password);
+//     let submission = {};
+//     if (mode === 'kis') {
+//         submission = {
+//             answerSets: [{
+//                 answers: [{
+//                     mediaItemName: chosen[0].getAttribute('data-video_id'),
+//                     start: parseInt(chosen[0].getAttribute('data-time_order')),
+//                     end: parseInt(chosen[0].getAttribute('data-time_order')),
+//                 }]
+//             }]
+//         };
+//     } else if (mode === 'qa') {
+//         submission = {
+//             answerSets: [{
+//                 answers: [{
+//                     text: `QA-${ans}-${chosen[0].getAttribute('data-video_id')}-${chosen[0].getAttribute('data-time_order')}`
+//                 }]
+//             }]
+//         };
+//     } else if (mode === 'trake') {
+//         let text = `TR-${chosen[0].getAttribute('data-video_id')}-`;
+//         for (let i = 0; i < chosen.length; i++) {
+//             text += `${chosen[i].getAttribute('data-frame_order')},`;
+//         }
+//         submission = {
+//             answerSets: [{
+//                 answers: [{
+//                     text: text.slice(0, -1)
+//                 }]
+//             }]
+//         };
+//     }
+//     console.log(submission)
+//     result = await submitResult(submission, idKey.sessionId, idKey.evaluationId);
+//     submitButton.textContent = result.submission;
+//     setTimeout(() => {
+//         submitButton.textContent = 'SUBMIT';
+//     }, 2000);
+// }

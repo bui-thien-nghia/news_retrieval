@@ -2,12 +2,12 @@
 <html lang="en">
     <head>
         <meta charset="UTF-8">
-        <meta name="author" content="Team TH3N">
-        <meta name="description" content="A web for image search and display at ease">
+        <meta name="author" content="sechsieben">
+        <meta name="description" content="A web for image search and result display">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Team TH3N's image search web</title>
-        <link rel="icon" href="{{ url_for('static', filename='icon.png') }}" type="image/x-icon">
-        <link rel="stylesheet" href="../static/css/style.css" type="text/css">
+        <title>New Retrieval</title>
+        <!-- <link rel="icon" href="{{ url_for('static', filename='icon.png') }}" type="image/x-icon"> -->
+        <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}" type="text/css">
     </head>
 
     <body>
@@ -76,7 +76,7 @@
                     <label for="collection_name">
                         <span>Collection</span>
                         <select name="collection_name" id="collection_name">
-                            <option value="aic_2025" selected>aic_2025</option>
+                            <option value="news_retrieval" selected>news_retrieval</option>
                         </select>
                     </label>
                 </div>
@@ -184,22 +184,10 @@
                     <input type="text" class="text-input" id="sort_frame_order">
                 </label>
 
-                <label for="answer_key">
-                    <input type="checkbox" id="answer_key" class="option">
-                    <span class="option-name">answer_key</span>
-                    <input type="text" class="text-input" id="sort_answer_key">
-                </label>
-
                 <label for="youtube_link">
                     <input type="checkbox" id="youtube_link" class="option">
                     <span class="option-name">youtube_link</span>
                     <input type="text" class="text-input" id="sort_youtube_link">
-                </label>
-
-                <label for="publish_date">
-                    <input type="checkbox" id="publish_date" class="option">
-                    <span class="option-name">publish_date</span>
-                    <input type="text" class="text-input" id="sort_publish_date">
                 </label>
             </div>
         </div>
@@ -212,7 +200,7 @@
             <section class="image-display" id="recheck">
 
             </section>
-            <div class="submit-mode">
+            <!-- <div class="submit-mode">
                 <label for="mode_selection">
                     <select name="mode_selection" class="mode-selection" id="mode_selection">
                         <option value="kis" selected>KIS</option>
@@ -224,7 +212,7 @@
                     <input type="text" id="qa_answer" style="display: none;">
                 </label>
             </div>
-            <div class='submit-button button'>SUBMIT</div>
+            <div class='submit-button button'>SUBMIT</div> -->
         </div>
 
         <script>
